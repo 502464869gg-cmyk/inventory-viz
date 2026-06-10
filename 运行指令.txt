@@ -1,0 +1,14 @@
+cd "C:\vscode_my_tables\Amazon Restocking\备货模拟器"
+
+
+cd "C:\Users\50246\Desktop\vscode_my_tables\Amazon Restocking\备货模拟器"
+
+
+streamlit run app.py
+
+
+
+streamlit run app2.py
+
+
+python -m streamlit run app2.py
