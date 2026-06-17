@@ -598,26 +598,40 @@ if c1_n.button("➕ 增分仓槽", use_container_width=True, key=f"add_n_{asin_n
 if c2_n.button("➖ 删分仓槽", use_container_width=True, key=f"del_n_{asin_name}"):
     if st.session_state[n_count_key] > 1: st.session_state[n_count_key] -= 1; st.rerun()
 
+
 # ================= 4.5 侧边栏：本地数据备份与恢复 =================
 st.sidebar.divider()
 st.sidebar.header("💾 个人存档保护 (防丢失必用)")
 
-# 1. 导出当前云端的 JSON 给用户下载
-if os.path.exists(CONFIG_FILE):
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        json_string = f.read()
-    st.sidebar.download_button(
-        label="📥 1. 下载最新推演进度到电脑",
-        data=json_string,
-        file_name=f"备货推演存档_{datetime.date.today()}.json",
-        mime="application/json",
-        help="云端临时数据随时可能被清理，强烈建议每天下班前点击下载！"
-    )
-else:
-    st.sidebar.warning("暂无历史存档可供下载")
+# 1. 核心魔法：实时抓取屏幕上的最新参数（完全无需点击保存）
+current_live_data = {
+    "initial_stock": initial_stock, "box_qty": box_qty, "start_date": start_date.strftime('%Y-%m-%d'),
+    "fba_delay": fba_delay, 
+    "region": st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US")).split(" ")[0].replace("🇺🇸", "US").replace("🇨🇦", "CA"),
+    "global_sales": global_sales, "tolerance_days": tolerance_days, "cover_days": cover_days,
+    "slicing_strategy": "全局" if "全局" in slicing_strategy else "单批次", "fast_pct": fast_pct,
+    "phases": [{"name": p["name"], "end_date": p["end"].strftime('%Y-%m-%d'), "days": p["days"], "sales": p["sales"]} for p in phases],
+    "fc": {"qty": fc_qty, "days": fc_days},
+    "transit_list": transit_state, "prod": prod_state, "new": new_state
+}
+
+# 把屏幕上的最新数据，安全合并进整体历史档案中
+export_configs = all_configs.copy()
+export_configs[asin_name] = current_live_data
+
+# 将合并好的最新状态直接转换成下载文件流
+live_json_string = json.dumps(export_configs, ensure_ascii=False, indent=4)
+
+st.sidebar.download_button(
+    label="📥 1. 一键下载最新进度到电脑",
+    data=live_json_string,
+    file_name=f"备货推演存档_{datetime.date.today()}.json",
+    mime="application/json",
+    help="直接下载当前屏幕上最新的所有数据！无需再点右侧的保存按钮。"
+)
 
 # 2. 允许用户上传本地的备份恢复进度
-uploaded_file = st.sidebar.file_uploader("📤 2. 上传本地存档文件恢复进度", type="json")
+uploaded_file = st.sidebar.file_uploader("📤 2. 上传本地存档文件恢复", type="json")
 if uploaded_file is not None:
     try:
         data = json.load(uploaded_file)
