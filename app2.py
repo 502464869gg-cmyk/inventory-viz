@@ -40,6 +40,14 @@ CH_CLASSIFICATION = {
     "CA": {
         "AIR": ["HQYD-加拿大红单包税", "HQYD-加拿大空加派包税"],
         "SEA": ["HQYD-加拿大海运包税", "HQYD-加拿大海运限时达包税", "HQYD-加拿大海卡包税(卡派)"]
+    },
+    "DE": {
+        "AIR": [], 
+        "SEA": ["HQYD-德国卡航自主VAT", "HQYD-德国海快自主VAT"]
+    },
+    "UK": {
+        "AIR": [], 
+        "SEA": ["HQYD-英国卡航自主VAT", "HQYD-英国海快自主VAT"]
     }
 }
 
@@ -62,11 +70,16 @@ def save_config(asin, data=None, delete=False, new_name=None):
         json.dump(configs, f, ensure_ascii=False, indent=4)
 
 def load_logistics():
+    base_logistics = DEFAULT_LOGISTICS.copy()
     if os.path.exists(GLOBAL_LOGISTICS_FILE):
         try:
-            with open(GLOBAL_LOGISTICS_FILE, "r", encoding="utf-8") as f: return json.load(f)
+            with open(GLOBAL_LOGISTICS_FILE, "r", encoding="utf-8") as f: 
+                saved_log = json.load(f)
+                # 核心升级：保留用户在网页上改动的天数的同时，自动吸收代码里新增的渠道
+                base_logistics.update(saved_log) 
+                return base_logistics
         except: pass
-    return DEFAULT_LOGISTICS.copy()
+    return base_logistics
 
 def save_logistics(data):
     with open(GLOBAL_LOGISTICS_FILE, "w", encoding="utf-8") as f:
@@ -649,7 +662,7 @@ if st.session_state.get("trigger_save", False):
     data_to_save = {
         "initial_stock": initial_stock, "box_qty": box_qty, "start_date": start_date.strftime('%Y-%m-%d'),
         "fba_delay": fba_delay, 
-        "region": st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US")).split(" ")[0].replace("🇺🇸", "US").replace("🇨🇦", "CA"),
+        "region": st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US")).split(" ")[0].replace("🇺🇸", "US").replace("🇨🇦", "CA").replace("🇩🇪", "DE").replace("🇬🇧", "UK"),
         "global_sales": global_sales, "tolerance_days": tolerance_days, "cover_days": cover_days,
         "slicing_strategy": "全局" if "全局" in slicing_strategy else "单批次", "fast_pct": fast_pct,
         "phases": [{"name": p["name"], "end_date": p["end"].strftime('%Y-%m-%d'), "days": p["days"], "sales": p["sales"]} for p in phases],
@@ -665,11 +678,19 @@ if st.session_state.get("trigger_save", False):
 # ================= 6. AI 大脑：双擎探测中枢 =================
 with st.expander("🤖 V8.1 AI 资金杠杆调控与核验中枢 (点击展开查阅详细策略与矩阵)", expanded=False):
     saved_region = c_data.get("region", "US")
-    pol_index = 0 if saved_region == "US" else 1
+    if saved_region == "CA": pol_index = 1
+    elif saved_region == "DE": pol_index = 2
+    elif saved_region == "UK": pol_index = 3
+    else: pol_index = 0
+    
     ai_region_policy = st.radio("📍 目的国入库策略 (与 ASIN 独立绑定)：", 
-                                ["🇺🇸 美国 (5分仓免配费动态矩阵)", "🇨🇦 加拿大 (单点多渠道锁仓)"], 
+                                ["🇺🇸 美国 (5分仓免配费动态矩阵)", "🇨🇦 加拿大 (单点多渠道锁仓)", "🇩🇪 德国 (欧洲统一策略)", "🇬🇧 英国 (单点策略)"], 
                                 index=pol_index, horizontal=True, key=f"ai_region_radio_{asin_name}")
-    region_code = "US" if "🇺🇸" in ai_region_policy else "CA"
+    
+    if "🇺🇸" in ai_region_policy: region_code = "US"
+    elif "🇨🇦" in ai_region_policy: region_code = "CA"
+    elif "🇩🇪" in ai_region_policy: region_code = "DE"
+    else: region_code = "UK"
 
     def get_first_drop_days(current_batches):
         t_15, t_0 = None, None
