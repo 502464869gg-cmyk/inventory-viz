@@ -288,6 +288,10 @@ with st.expander("⚙️ 高级档案管理 (重命名 / 永久删除 / 存档)"
     if st.button("💾 手动覆盖存档当前参数", type="primary", use_container_width=True):
         st.session_state["trigger_save"] = True 
 
+# ================= [新增] 2.5 侧边栏置顶传送门 =================
+backup_top_container = st.sidebar.container()
+
+
 # ================= 3. 侧边栏：全局变量与动态日历 =================
 st.sidebar.header("🌍 全局物流时效配置")
 with st.sidebar.expander("⚙️ 编辑物流渠道时效 (双击修改)", expanded=False):
@@ -612,49 +616,6 @@ c1_n, c2_n = st.sidebar.columns(2)
 if c1_n.button("➕ 增分仓槽", use_container_width=True, key=f"add_n_{asin_name}"): st.session_state[n_count_key] += 1; st.rerun()
 if c2_n.button("➖ 删分仓槽", use_container_width=True, key=f"del_n_{asin_name}"):
     if st.session_state[n_count_key] > 1: st.session_state[n_count_key] -= 1; st.rerun()
-
-
-# ================= 4.5 侧边栏：本地数据备份与恢复 =================
-st.sidebar.divider()
-st.sidebar.header("💾 个人存档保护 (防丢失必用)")
-
-# 1. 核心魔法：实时抓取屏幕上的最新参数（完全无需点击保存）
-current_live_data = {
-    "initial_stock": initial_stock, "box_qty": box_qty, "start_date": start_date.strftime('%Y-%m-%d'),
-    "fba_delay": fba_delay, 
-    "region": st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US")).split(" ")[0].replace("🇺🇸", "US").replace("🇨🇦", "CA"),
-    "global_sales": global_sales, "tolerance_days": tolerance_days, "cover_days": cover_days,
-    "slicing_strategy": "全局" if "全局" in slicing_strategy else "单批次", "fast_pct": fast_pct,
-    "phases": [{"name": p["name"], "end_date": p["end"].strftime('%Y-%m-%d'), "days": p["days"], "sales": p["sales"]} for p in phases],
-    "fc": {"qty": fc_qty, "days": fc_days},
-    "transit_list": transit_state, "prod": prod_state, "new": new_state
-}
-
-# 把屏幕上的最新数据，安全合并进整体历史档案中
-export_configs = all_configs.copy()
-export_configs[asin_name] = current_live_data
-
-# 将合并好的最新状态直接转换成下载文件流
-live_json_string = json.dumps(export_configs, ensure_ascii=False, indent=4)
-
-st.sidebar.download_button(
-    label="📥 1. 一键下载最新进度到电脑",
-    data=live_json_string,
-    file_name=f"备货推演存档_{datetime.date.today()}.json",
-    mime="application/json",
-    help="直接下载当前屏幕上最新的所有数据！无需再点右侧的保存按钮。"
-)
-
-# 2. 允许用户上传本地的备份恢复进度
-uploaded_file = st.sidebar.file_uploader("📤 2. 上传本地存档文件恢复", type="json")
-if uploaded_file is not None:
-    try:
-        data = json.load(uploaded_file)
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-        st.sidebar.success("✅ 数据恢复成功！请点击上方工具栏的 [⋮] -> [Clear cache] 后刷新页面。")
-    except Exception as e:
-        st.sidebar.error(f"❌ 读取存档失败: {e}")
 
 
 # ================= 5. 数据存储层 =================
@@ -1295,3 +1256,50 @@ for d_date in sorted(arrival_dict.keys()):
 
 fig.update_layout(title=f"【{asin_name}】 动态资金统筹与库存推演沙盘", xaxis_title="真实日历 (Date)", yaxis_title="FBA 可用库存 (Units)", hovermode="x unified", height=650, margin=dict(t=50, b=50))
 st.plotly_chart(fig, use_container_width=True)
+
+# ================= 8. 侧边栏置顶备份模块 (通过传送门渲染) =================
+# 此时全篇所有变量、AI策略和图表控件均已计算完毕，反向塞入顶部的传送门中
+with backup_top_container:
+    st.header("💾 个人存档保护 (防丢失必用)")
+    
+    # 实时抓取屏幕上的最新参数（完全对齐你 V8.1 的最新数据结构）
+    current_live_data = {
+        "initial_stock": initial_stock, "box_qty": box_qty, "start_date": start_date.strftime('%Y-%m-%d'),
+        "fba_delay": fba_delay, 
+        "region": st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US")).split(" ")[0].replace("🇺🇸", "US").replace("🇨🇦", "CA").replace("🇩🇪", "DE").replace("🇬🇧", "UK"),
+        "global_sales": global_sales, "tolerance_days": tolerance_days, "cover_days": cover_days,
+        "slicing_strategy": "全局" if "全局" in slicing_strategy else "单批次", "fast_pct": fast_pct,
+        "phases": [{"name": p["name"], "end_date": p["end"].strftime('%Y-%m-%d'), "days": p["days"], "sales": p["sales"]} for p in phases],
+        "fc": {"qty": fc_qty, "days": fc_days},
+        "transit_list": transit_state, "prod": prod_state, "new": new_state,
+        "view_mode": st.session_state.get(view_mode_key, "极简悬浮模式 (推荐)"),
+        "y_offset": st.session_state.get(y_offset_key, 65)
+    }
+
+    # 把屏幕上的最新数据，安全合并进整体历史档案中
+    export_configs = all_configs.copy()
+    export_configs[asin_name] = current_live_data
+    live_json_string = json.dumps(export_configs, ensure_ascii=False, indent=4)
+
+    # 在顶部渲染下载按钮 (因为外层套了 backup_top_container，所以它会显示在左上方)
+    st.download_button(
+        label="📥 1. 一键下载最新进度到电脑",
+        data=live_json_string,
+        file_name=f"备货推演存档_{datetime.date.today()}.json",
+        mime="application/json",
+        use_container_width=True,
+        help="直接下载当前屏幕上最新的所有数据！无需再点右侧的保存按钮。"
+    )
+
+    # 在顶部渲染上传组件
+    uploaded_file = st.file_uploader("📤 2. 上传本地存档文件恢复", type="json")
+    if uploaded_file is not None:
+        try:
+            data = json.load(uploaded_file)
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            st.success("✅ 数据恢复成功！请点击上方工具栏的 [⋮] -> [Clear cache] 后刷新页面。")
+        except Exception as e:
+            st.error(f"❌ 读取存档失败: {e}")
+            
+    st.divider() # 加一条华丽的分割线，和下方的物流配置隔开
