@@ -598,6 +598,36 @@ if c1_n.button("➕ 增分仓槽", use_container_width=True, key=f"add_n_{asin_n
 if c2_n.button("➖ 删分仓槽", use_container_width=True, key=f"del_n_{asin_name}"):
     if st.session_state[n_count_key] > 1: st.session_state[n_count_key] -= 1; st.rerun()
 
+# ================= 4.5 侧边栏：本地数据备份与恢复 =================
+st.sidebar.divider()
+st.sidebar.header("💾 个人存档保护 (防丢失必用)")
+
+# 1. 导出当前云端的 JSON 给用户下载
+if os.path.exists(CONFIG_FILE):
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        json_string = f.read()
+    st.sidebar.download_button(
+        label="📥 1. 下载最新推演进度到电脑",
+        data=json_string,
+        file_name=f"备货推演存档_{datetime.date.today()}.json",
+        mime="application/json",
+        help="云端临时数据随时可能被清理，强烈建议每天下班前点击下载！"
+    )
+else:
+    st.sidebar.warning("暂无历史存档可供下载")
+
+# 2. 允许用户上传本地的备份恢复进度
+uploaded_file = st.sidebar.file_uploader("📤 2. 上传本地存档文件恢复进度", type="json")
+if uploaded_file is not None:
+    try:
+        data = json.load(uploaded_file)
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        st.sidebar.success("✅ 数据恢复成功！请点击上方工具栏的 [⋮] -> [Clear cache] 后刷新页面。")
+    except Exception as e:
+        st.sidebar.error(f"❌ 读取存档失败: {e}")
+
+
 # ================= 5. 数据存储层 =================
 if st.session_state.get("trigger_save", False):
     data_to_save = {
