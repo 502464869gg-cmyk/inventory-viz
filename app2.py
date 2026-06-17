@@ -6,6 +6,14 @@ import json
 import os
 import math
 
+# ================= 0. 访问权限拦截 =================
+password = st.sidebar.text_input("🔒 请输入内部授权码", type="password")
+if password != "hmdz888":  # 这里的 888888 可以换成你想要的任何密码
+    st.warning("✋ 这是内部备货推演沙盘，请输入正确的授权码后方可使用。")
+    st.stop()  # 密码不对，直接停止运行后面的所有代码
+
+
+
 # ================= 1. 核心业务逻辑与本地数据库 =================
 DEFAULT_ASIN = "BFN-143"
 DEFAULT_STOCK = 600
