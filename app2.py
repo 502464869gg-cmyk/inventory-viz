@@ -1323,7 +1323,7 @@ if first_safety_drop_date:
             text=f"🛒 {suggested_buy_date.strftime('%m/%d')} 建议建单", 
             showarrow=False,   # 关闭箭头
             bgcolor="#e7f5ff", 
-            font=dict(color="#1f77b4", size=12),
+            font=dict(color="#1f77b4", size=11),
             bordercolor="#1f77b4",
             borderwidth=1,
             borderpad=4
@@ -1346,7 +1346,7 @@ for b in final_all_batches:
     arrival_dict[arr_date].append(f"{b['name']}({b['qty']}件)")
     total_qty_dict[arr_date] += b['qty']
 
-base_ay = 45
+base_ay = 55
 step_ay = st.session_state[y_offset_key]
 height_cycle = [base_ay, base_ay + step_ay, base_ay + step_ay*2, base_ay + step_ay*3, base_ay + step_ay*4]
 h_idx = 0

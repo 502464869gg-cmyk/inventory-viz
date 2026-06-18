@@ -182,8 +182,8 @@
                 "orig_lead": 35
             }
         ],
-        "view_mode": "极简悬浮模式 (推荐)",
-        "y_offset": 40
+        "view_mode": "展开节点详情 (错落防撞)",
+        "y_offset": 65
     },
     "BFN-142-US": {
         "initial_stock": 627,
@@ -360,9 +360,9 @@
         "y_offset": 50
     },
     "BFN-143-US": {
-        "initial_stock": 579,
+        "initial_stock": 572,
         "box_qty": 7,
-        "start_date": "2026-06-17",
+        "start_date": "2026-06-18",
         "fba_delay": 2,
         "region": "US",
         "global_sales": 10,
@@ -374,7 +374,7 @@
             {
                 "name": "PD前",
                 "end_date": "2026-06-22",
-                "days": 6,
+                "days": 5,
                 "sales": 6
             },
             {
@@ -420,41 +420,31 @@
         },
         "transit_list": [
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-09",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-09",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-09",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-09",
                 "qty": 0
             },
             {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
-                "qty": 0
-            },
-            {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
-                "qty": 0
-            },
-            {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
-                "qty": 0
-            },
-            {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-09",
                 "qty": 0
@@ -501,35 +491,35 @@
             {
                 "ch": "HQYD-海运快线-限时达",
                 "qty": 105,
-                "lead": 27,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 105,
-                "lead": 27,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运慢线",
                 "qty": 98,
-                "lead": 27,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运海卡",
                 "qty": 98,
-                "lead": 27,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运海卡",
                 "qty": 98,
-                "lead": 27,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             }
@@ -538,46 +528,58 @@
         "y_offset": 80
     },
     "BFN-161-CA": {
-        "initial_stock": 766,
+        "initial_stock": 750,
         "box_qty": 7,
-        "start_date": "2026-06-16",
+        "start_date": "2026-06-18",
         "fba_delay": 5,
         "region": "CA",
         "global_sales": 10,
         "tolerance_days": 7,
         "cover_days": 30,
         "slicing_strategy": "单批次",
-        "fast_pct": 50,
+        "fast_pct": 30,
         "phases": [
             {
                 "name": "PD前",
                 "end_date": "2026-06-22",
-                "days": 7,
-                "sales": 6
+                "days": 5,
+                "sales": 7
             },
             {
                 "name": "PD",
-                "end_date": "2026-06-26",
-                "days": 4,
-                "sales": 20
-            },
-            {
-                "name": "PD后",
-                "end_date": "2026-07-17",
-                "days": 21,
-                "sales": 10
+                "end_date": "2026-06-28",
+                "days": 6,
+                "sales": 18
             },
             {
                 "name": "7月BD",
-                "end_date": "2026-07-31",
+                "end_date": "2026-07-12",
                 "days": 14,
-                "sales": 20
+                "sales": 18
             },
             {
                 "name": "7月BD后",
-                "end_date": "2026-08-21",
+                "end_date": "2026-08-02",
                 "days": 21,
-                "sales": 10
+                "sales": 8
+            },
+            {
+                "name": "8月BD",
+                "end_date": "2026-08-16",
+                "days": 14,
+                "sales": 18
+            },
+            {
+                "name": "8月BD后",
+                "end_date": "2026-09-06",
+                "days": 21,
+                "sales": 8
+            },
+            {
+                "name": "9月BD",
+                "end_date": "2026-09-20",
+                "days": 14,
+                "sales": 18
             }
         ],
         "fc": {
@@ -586,13 +588,33 @@
         },
         "transit_list": [
             {
+                "name": "FBA19CW6K67K 海卡包税1",
                 "ch": "HQYD-加拿大海卡包税(卡派)",
                 "ship_date": "2026-05-15",
                 "qty": 266
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
+                "qty": 0
+            },
+            {
+                "name": "",
+                "ch": "HQYD-海运快线-限时达",
+                "ship_date": "2026-06-16",
+                "qty": 0
+            },
+            {
+                "name": "",
+                "ch": "HQYD-海运快线-限时达",
+                "ship_date": "2026-06-16",
+                "qty": 0
+            },
+            {
+                "name": "",
+                "ch": "HQYD-海运快线-限时达",
+                "ship_date": "2026-06-16",
                 "qty": 0
             }
         ],
@@ -637,46 +659,46 @@
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 30,
+                "lead": 28,
                 "anchor_date": "2026-06-11",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 30,
+                "lead": 28,
                 "anchor_date": "2026-06-11",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 30,
+                "lead": 28,
                 "anchor_date": "2026-06-11",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 30,
+                "lead": 28,
                 "anchor_date": "2026-06-11",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 30,
+                "lead": 28,
                 "anchor_date": "2026-06-11",
                 "orig_lead": 35
             }
         ],
         "view_mode": "展开节点详情 (错落防撞)",
-        "y_offset": 75
+        "y_offset": 30
     },
     "BFN-142-CA": {
-        "initial_stock": 213,
+        "initial_stock": 201,
         "box_qty": 7,
-        "start_date": "2026-06-16",
+        "start_date": "2026-06-18",
         "fba_delay": 5,
         "region": "CA",
         "global_sales": 4,
@@ -688,8 +710,8 @@
             {
                 "name": "PD前",
                 "end_date": "2026-06-22",
-                "days": 7,
-                "sales": 3
+                "days": 5,
+                "sales": 4
             },
             {
                 "name": "PD",
@@ -714,6 +736,12 @@
                 "end_date": "2026-08-04",
                 "days": 21,
                 "sales": 4
+            },
+            {
+                "name": "8月BD",
+                "end_date": "2026-08-18",
+                "days": 14,
+                "sales": 7
             }
         ],
         "fc": {
@@ -722,66 +750,74 @@
         },
         "transit_list": [
             {
+                "name": "FBA19FT8PD0Q 限时达包税1",
+                "ch": "HQYD-加拿大海运限时达包税",
+                "ship_date": "2026-06-17",
+                "qty": 133
+            },
+            {
+                "name": "FBA19FT88DNT 海卡1",
+                "ch": "HQYD-加拿大海卡包税(卡派)",
+                "ship_date": "2026-06-17",
+                "qty": 133
+            },
+            {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
+                "ship_date": "2026-06-17",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
+                "ship_date": "2026-06-17",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
+                "ship_date": "2026-06-17",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
+                "ship_date": "2026-06-17",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
+                "ship_date": "2026-06-17",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
-                "qty": 0
-            },
-            {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
-                "qty": 0
-            },
-            {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-09",
+                "ship_date": "2026-06-17",
                 "qty": 0
             }
         ],
         "prod": [
             {
-                "ch": "HQYD-加拿大海运限时达包税",
-                "deliv_date": "2026-06-17",
-                "buffer": 1,
-                "ship_date": "2026-06-18",
-                "qty": 133
-            },
-            {
-                "ch": "HQYD-加拿大海卡包税(卡派)",
-                "deliv_date": "2026-06-17",
-                "buffer": 1,
-                "ship_date": "2026-06-18",
-                "qty": 133
-            },
-            {
                 "ch": "HQYD-海运快线-限时达",
                 "deliv_date": "2026-06-24",
                 "buffer": 4,
                 "ship_date": "2026-06-28",
+                "qty": 0
+            },
+            {
+                "ch": "HQYD-海运快线-限时达",
+                "deliv_date": "2026-06-26",
+                "buffer": 1,
+                "ship_date": "2026-06-27",
+                "qty": 0
+            },
+            {
+                "ch": "HQYD-海运快线-限时达",
+                "deliv_date": "2026-06-26",
+                "buffer": 1,
+                "ship_date": "2026-06-27",
                 "qty": 0
             },
             {
@@ -803,35 +839,35 @@
             {
                 "ch": "HQYD-加拿大海卡包税(卡派)",
                 "qty": 0,
-                "lead": 33,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 33,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 33,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 33,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 0,
-                "lead": 33,
+                "lead": 26,
                 "anchor_date": "2026-06-09",
                 "orig_lead": 35
             }
@@ -840,9 +876,9 @@
         "y_offset": 65
     },
     "ik-703-US": {
-        "initial_stock": 763,
+        "initial_stock": 735,
         "box_qty": 7,
-        "start_date": "2026-06-16",
+        "start_date": "2026-06-18",
         "fba_delay": 0,
         "region": "US",
         "global_sales": 15,
@@ -854,14 +890,14 @@
             {
                 "name": "PD前",
                 "end_date": "2026-06-22",
-                "days": 7,
-                "sales": 11
+                "days": 5,
+                "sales": 15
             },
             {
                 "name": "PD",
                 "end_date": "2026-06-26",
                 "days": 4,
-                "sales": 18
+                "sales": 15
             },
             {
                 "name": "PD后",
@@ -873,7 +909,7 @@
                 "name": "7月BD",
                 "end_date": "2026-07-31",
                 "days": 14,
-                "sales": 20
+                "sales": 18
             },
             {
                 "name": "7月BD后",
@@ -900,41 +936,31 @@
         },
         "transit_list": [
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
             },
             {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-11",
-                "qty": 0
-            },
-            {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-11",
-                "qty": 0
-            },
-            {
-                "ch": "HQYD-海运快线-限时达",
-                "ship_date": "2026-06-11",
-                "qty": 0
-            },
-            {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
@@ -943,37 +969,37 @@
         "prod": [
             {
                 "ch": "HQYD-海运快线-限时达",
-                "deliv_date": "2026-07-08",
+                "deliv_date": "2026-07-09",
                 "buffer": 1,
-                "ship_date": "2026-07-09",
+                "ship_date": "2026-07-10",
                 "qty": 105
             },
             {
                 "ch": "HQYD-海运快线-限时达",
-                "deliv_date": "2026-07-08",
+                "deliv_date": "2026-07-09",
                 "buffer": 1,
-                "ship_date": "2026-07-09",
+                "ship_date": "2026-07-10",
                 "qty": 105
             },
             {
                 "ch": "HQYD-海运快线-限时达",
-                "deliv_date": "2026-07-08",
+                "deliv_date": "2026-07-09",
                 "buffer": 1,
-                "ship_date": "2026-07-09",
-                "qty": 105
+                "ship_date": "2026-07-10",
+                "qty": 98
             },
             {
                 "ch": "HQYD-海运快线-限时达",
-                "deliv_date": "2026-07-08",
+                "deliv_date": "2026-07-09",
                 "buffer": 1,
-                "ship_date": "2026-07-09",
+                "ship_date": "2026-07-10",
                 "qty": 98
             },
             {
                 "ch": "HQYD-海运-合德",
-                "deliv_date": "2026-07-08",
+                "deliv_date": "2026-07-09",
                 "buffer": 1,
-                "ship_date": "2026-07-09",
+                "ship_date": "2026-07-10",
                 "qty": 98
             }
         ],
@@ -981,49 +1007,49 @@
             {
                 "ch": "HQYD-海运快线-限时达",
                 "qty": 105,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 105,
-                "lead": 35,
-                "anchor_date": "2026-06-16",
-                "orig_lead": 35
-            },
-            {
-                "ch": "HQYD-海运慢线",
-                "qty": 105,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运慢线",
                 "qty": 98,
-                "lead": 35,
+                "lead": 33,
+                "anchor_date": "2026-06-16",
+                "orig_lead": 35
+            },
+            {
+                "ch": "HQYD-海运慢线",
+                "qty": 98,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运海卡",
                 "qty": 98,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             }
         ],
         "view_mode": "展开节点详情 (错落防撞)",
-        "y_offset": 65
+        "y_offset": 70
     },
     "ik-103-US-BK": {
-        "initial_stock": 174,
+        "initial_stock": 175,
         "box_qty": 12,
-        "start_date": "2026-06-16",
+        "start_date": "2026-06-18",
         "fba_delay": 5,
         "region": "US",
-        "global_sales": 4,
+        "global_sales": 5,
         "tolerance_days": 7,
         "cover_days": 30,
         "slicing_strategy": "单批次",
@@ -1032,20 +1058,20 @@
             {
                 "name": "PD前",
                 "end_date": "2026-06-22",
-                "days": 7,
-                "sales": 3
+                "days": 5,
+                "sales": 4
             },
             {
                 "name": "PD",
                 "end_date": "2026-06-26",
                 "days": 4,
-                "sales": 6
+                "sales": 5
             },
             {
                 "name": "PD后",
                 "end_date": "2026-06-30",
                 "days": 4,
-                "sales": 3
+                "sales": 4
             },
             {
                 "name": "7月BD",
@@ -1072,41 +1098,49 @@
         },
         "transit_list": [
             {
+                "name": "FBA19FGLM0CV 限时达1",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-12",
                 "qty": 24
             },
             {
+                "name": "FBA19FGP1WB5 限时达1",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-12",
                 "qty": 48
             },
             {
+                "name": "FBA19FGMBTY1 限时达卡派1",
                 "ch": "HQYD-海运快线-限时达(卡派)",
                 "ship_date": "2026-06-12",
                 "qty": 24
             },
             {
+                "name": "FBA19FGHNT3P 海慢线1",
                 "ch": "HQYD-海运慢线",
                 "ship_date": "2026-06-12",
                 "qty": 48
             },
             {
+                "name": "FBA19FGK425J 海卡1",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-06-12",
                 "qty": 36
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
             },
             {
+                "name": "",
                 "ch": "HQYD-海运快线-限时达",
                 "ship_date": "2026-06-11",
                 "qty": 0
@@ -1153,46 +1187,46 @@
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 24,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 36,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德(卡派)",
                 "qty": 24,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运慢线",
                 "qty": 36,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运海卡",
                 "qty": 36,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             }
         ],
         "view_mode": "展开节点详情 (错落防撞)",
-        "y_offset": 70
+        "y_offset": 65
     },
     "ik-103-US-PUR": {
-        "initial_stock": 532,
+        "initial_stock": 521,
         "box_qty": 12,
-        "start_date": "2026-06-16",
+        "start_date": "2026-06-18",
         "fba_delay": 5,
         "region": "US",
         "global_sales": 8,
@@ -1204,14 +1238,14 @@
             {
                 "name": "PD前",
                 "end_date": "2026-06-22",
-                "days": 7,
-                "sales": 8
+                "days": 5,
+                "sales": 7
             },
             {
                 "name": "PD",
                 "end_date": "2026-06-26",
                 "days": 4,
-                "sales": 16
+                "sales": 15
             },
             {
                 "name": "PD后",
@@ -1223,7 +1257,7 @@
                 "name": "7月BD",
                 "end_date": "2026-07-14",
                 "days": 14,
-                "sales": 17
+                "sales": 16
             },
             {
                 "name": "7月BD后",
@@ -1235,7 +1269,7 @@
                 "name": "8月BD",
                 "end_date": "2026-08-18",
                 "days": 14,
-                "sales": 18
+                "sales": 16
             }
         ],
         "fc": {
@@ -1244,51 +1278,61 @@
         },
         "transit_list": [
             {
+                "name": "FBA19DWXN6M9 海卡1",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-05-29",
                 "qty": 72
             },
             {
+                "name": "FBA19DWRJ2S7 海卡1",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-05-29",
                 "qty": 60
             },
             {
+                "name": "FBA19DWQRS9G 海卡1",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-05-29",
                 "qty": 108
             },
             {
+                "name": "FBA19DWSLTCS 海卡1",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-05-29",
                 "qty": 60
             },
             {
+                "name": "FBA19DWYYYRQ 海卡1",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-05-29",
                 "qty": 60
             },
             {
+                "name": "FBA19FGTFKYB 海卡2",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-06-12",
                 "qty": 24
             },
             {
+                "name": "FBA19FGQFDFG 海卡2",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-06-12",
                 "qty": 12
             },
             {
+                "name": "FBA19FGS3YXN 海卡2",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-06-12",
                 "qty": 36
             },
             {
+                "name": "FBA19FGNMMWY 海卡2",
                 "ch": "HQYD-海运海卡",
                 "ship_date": "2026-06-12",
                 "qty": 24
             },
             {
+                "name": "FBA19FGS4KKQ 海慢2",
                 "ch": "HQYD-海运慢线",
                 "ship_date": "2026-06-12",
                 "qty": 24
@@ -1335,35 +1379,35 @@
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 48,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德",
                 "qty": 48,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运-合德(卡派)",
                 "qty": 48,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运慢线",
                 "qty": 48,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             },
             {
                 "ch": "HQYD-海运海卡",
                 "qty": 108,
-                "lead": 35,
+                "lead": 33,
                 "anchor_date": "2026-06-16",
                 "orig_lead": 35
             }
