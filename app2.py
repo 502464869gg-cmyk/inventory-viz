@@ -1333,28 +1333,7 @@ if first_safety_drop_date:
 if hit_zero_date:
     fig.add_annotation(x=hit_zero_date.strftime('%Y-%m-%d'), y=0, text=f"🚨 {hit_zero_date.strftime('%m/%d')} 彻底断货!", showarrow=True, arrowhead=1, arrowcolor="red", ax=0, ay=-100, bgcolor="#ffe3e3", font=dict(color="red"))
 
-colors = ["#f8f9fa", "#e9ecef", "#dee2e6", "#ced4da"]
-for i, p in enumerate(phases):
-    t_start = p["start"].strftime('%Y-%m-%d')
-    t_end = (p["end"] + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-    
-    # 1. 依然画背景色块（放在底层，不遮挡曲线）
-    fig.add_vrect(x0=t_start, x1=t_end, fillcolor=colors[i % len(colors)], opacity=0.5, layer="below", line_width=0)
-    
-    # 2. 独立渲染文字标签（默认在顶层，自带白色半透明遮罩底色）
-    fig.add_annotation(
-        x=t_start,
-        y=1,               # 悬浮在图表顶部 100% 的高度
-        yref="paper",         # 开启相对坐标，随屏幕自适应
-        xanchor="left",       # 文字左对齐起始线
-        yanchor="top",
-        text=f"<b>{p['name']}</b><br><span style='font-size:12px; color:gray;'>{p['sales']}</span>",
-        showarrow=False,      # 关闭箭头
-        bgcolor="rgba(255, 255, 255, 0.8)", # 🌟核心：加一个 80% 不透明度的白色底板
-        bordercolor="rgba(0,0,0,0.05)",     # 极淡的边框增加质感
-        borderpad=4
-    )
-
+# --- 核心置顶手术区：先让上架绿色气泡在底层渲染 ---
 arrival_dict = {}
 total_qty_dict = {}
 
@@ -1369,7 +1348,6 @@ for b in final_all_batches:
 
 base_ay = 45
 step_ay = st.session_state[y_offset_key]
-# V8.0 防撞阶梯扩容至 5 级，应对极限拥挤
 height_cycle = [base_ay, base_ay + step_ay, base_ay + step_ay*2, base_ay + step_ay*3, base_ay + step_ay*4]
 h_idx = 0
 
@@ -1395,6 +1373,31 @@ for d_date in sorted(arrival_dict.keys()):
         fig.add_vline(x=date_str, line_dash="dot", line_color="rgba(43, 138, 62, 0.3)")
     except IndexError: pass 
 
+# 🌟🌟🌟 【核心改动】将大促阶段标签移到全篇最后一步渲染，强制拉满物理 Z-Index 图层置顶 🌟🌟🌟
+colors = ["#f8f9fa", "#e9ecef", "#dee2e6", "#ced4da"]
+for i, p in enumerate(phases):
+    t_start = p["start"].strftime('%Y-%m-%d')
+    t_end = (p["end"] + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    # 背景色块依然保持在最底层 (layer="below")
+    fig.add_vrect(x0=t_start, x1=t_end, fillcolor=colors[i % len(colors)], opacity=0.5, layer="below", line_width=0)
+    
+    # 橙色销量便签最后渲染，物理级别图层绝对置顶
+    fig.add_annotation(
+        x=t_start,
+        y=1,               # 完美内嵌在主图表上边缘线以内，绝不超出边界
+        yref="paper",         
+        xanchor="left",       
+        yanchor="top",        
+        text=f"<span style='font-size:12px; font-weight:bold; color:#e67700;'> {p['name']}</span><br><span style='font-size:12px; font-weight:bold; color:#d9480f;'> {p['sales']}</span>",
+        showarrow=False,      
+        bgcolor="rgba(255, 255, 255, 1.0)",   # 🛡️ 强制改用 1.0 纯白完全不透明背景，100% 遮挡任何胆敢穿透上来的绿色线条
+        bordercolor="rgba(230, 119, 0, 0.5)", # 边框色线稍微加深，强化置顶标签的实体纸张质感
+        borderwidth=1,
+        borderpad=4
+    )
+
+# --- 最终画布收尾与渲染 ---
 fig.update_layout(title=f"【{asin_name}】 动态资金统筹与库存推演沙盘", xaxis_title="真实日历 (Date)", yaxis_title="FBA 可用库存 (Units)", hovermode="x unified", height=650, margin=dict(t=50, b=50))
 st.plotly_chart(fig, use_container_width=True)
 
