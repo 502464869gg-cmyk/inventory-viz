@@ -377,8 +377,28 @@ for i in range(st.session_state[phase_count_key]):
         p_end = st.date_input(f"[{p_name}] 结束日期 (固定锚点)", value=default_end_date, key=f"p_end_{i}_{asin_name}")
         p_days = (p_end - current_phase_start).days + 1
         p_sales_key = f"p_sales_{i}_{asin_name}"
-        if p_sales_key not in st.session_state: st.session_state[p_sales_key] = int(saved_p.get("sales", global_sales))
-        p_sales = st.slider(f"[{p_name}] 日均销预估", min_value=0, max_value=500, key=p_sales_key)
+        # 初始化状态，并将原配置中的历史销量同步，最大值智能硬性截断在 200 以内防止溢出
+        if p_sales_key not in st.session_state: 
+            st.session_state[p_sales_key] = min(200, int(saved_p.get("sales", global_sales)))
+        
+        # 渲染独立的文本标签，避免塞进列布局中导致挤压变形
+        st.markdown(f"📊 **[{p_name}] 日均销预估**")
+        
+        # 【核心修复】定义回调函数，避开 Streamlit 生命周期渲染冲突
+        def cb_sub(k): st.session_state[k] = max(0, st.session_state.get(k, 0) - 1)
+        def cb_add(k): st.session_state[k] = min(200, st.session_state.get(k, 0) + 1)
+        
+        # 建立 1.5 : 7 : 1.5 的紧凑水平对齐阵列
+        slide_col1, slide_col2, slide_col3 = st.columns([1.5, 7, 1.5])
+        
+        # 🌟 左侧：微调减号按钮 (通过 on_click 让结算发生在画面渲染前)
+        slide_col1.button("➖", key=f"btn_sub_{i}_{asin_name}", use_container_width=True, on_click=cb_sub, args=(p_sales_key,))
+            
+        # 🌟 中间：无缝接收状态值的滑动条（最大值锁死在 200，并隐藏自带标签保持视效纯净）
+        p_sales = slide_col2.slider("销量调节", min_value=0, max_value=80, key=p_sales_key, label_visibility="collapsed")
+        
+        # 🌟 右侧：微调加号按钮 (通过 on_click 让结算发生在画面渲染前)
+        slide_col3.button("➕", key=f"btn_add_{i}_{asin_name}", use_container_width=True, on_click=cb_add, args=(p_sales_key,))
         
         if p_days > 0:
             phases.append({"name": p_name, "start": current_phase_start, "end": p_end, "days": p_days, "sales": p_sales})
