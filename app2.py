@@ -63,9 +63,27 @@ def load_all_configs():
 
 def save_config(asin, data=None, delete=False, new_name=None):
     configs = load_all_configs()
-    if delete and asin in configs: del configs[asin]
-    elif new_name and asin in configs: configs[new_name] = configs.pop(asin)
-    elif data: configs[asin] = data
+    
+    if delete and asin in configs:
+        # 删除操作：直接移除，其余元素在 JSON 中保持原汁原味的相对插入顺序平移
+        del configs[asin]
+        
+    elif new_name and asin in configs:
+        # 改名原位锚定技术：创建一个全新空字典，逐个搬运旧数据
+        new_configs = {}
+        for k, v in configs.items():
+            if k == asin:
+                # 当扫描到被改名的 ASIN 时，在当前循环的“原位置”无缝替换成新名字
+                new_configs[new_name] = v
+            else:
+                # 其余不相干的 ASIN 按原本的物理顺序原封不动写回
+                new_configs[k] = v
+        configs = new_configs
+        
+    elif data:
+        # 常规保存：如果是已有 ASIN，Python 会直接原位覆盖值，顺序不受丝毫动摇
+        configs[asin] = data
+        
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(configs, f, ensure_ascii=False, indent=4)
 
@@ -270,23 +288,37 @@ with col_b4:
     st.markdown("""<style>div[data-testid="column"]:nth-of-type(4) div[data-testid="stButton"] {margin-top: 28px;}</style>""", unsafe_allow_html=True)
     c_b4_2.button("🔄 同步今日", on_click=sync_today_action, args=(asin_name, c_data))
 
+# 提前定义回调函数，让状态修改在页面重新渲染前提前结算
+def cb_rename_asin(old_asin):
+    new_asin = st.session_state.get("new_asin_name_input")
+    if new_asin and new_asin != old_asin and old_asin in all_configs:
+        save_config(old_asin, new_name=new_asin)
+        st.session_state.asin_input = new_asin  # 此时还没渲染输入框，修改绝对安全
+        st.session_state["msg_rename"] = "重命名成功！"
+
+def cb_delete_asin(del_asin):
+    if del_asin in all_configs:
+        save_config(del_asin, delete=True)
+        st.session_state.asin_input = DEFAULT_ASIN
+        st.session_state["msg_delete"] = f"档案 {del_asin} 已彻底删除！"
+
 with st.expander("⚙️ 高级档案管理 (重命名 / 永久删除 / 存档)", expanded=False):
     m_col1, m_col2, m_col3 = st.columns(3)
-    new_asin_name = m_col1.text_input("重命名当前档案", value=asin_name)
-    if m_col2.button("📝 确认重命名", use_container_width=True):
-        if new_asin_name and new_asin_name != asin_name and asin_name in all_configs:
-            save_config(asin_name, new_name=new_asin_name)
-            st.session_state.asin_input = new_asin_name
-            st.success("重命名成功！")
-            st.rerun()
-    if m_col3.button("🗑️ 永久删除当前档案", type="primary", use_container_width=True):
-        if asin_name in all_configs:
-            save_config(asin_name, delete=True)
-            st.session_state.asin_input = DEFAULT_ASIN
-            st.warning(f"档案 {asin_name} 已彻底删除！")
-            st.rerun()
+    # 注意：这里增加了一个 key="new_asin_name_input"，让上方的回调函数能精准抓取用户输入
+    new_asin_name = m_col1.text_input("重命名当前档案", value=asin_name, key="new_asin_name_input")
+    
+    # 核心改动：把执行逻辑放进 on_click 属性里
+    m_col2.button("📝 确认重命名", use_container_width=True, on_click=cb_rename_asin, args=(asin_name,))
+    m_col3.button("🗑️ 永久删除当前档案", type="primary", use_container_width=True, on_click=cb_delete_asin, args=(asin_name,))
+    
     if st.button("💾 手动覆盖存档当前参数", type="primary", use_container_width=True):
         st.session_state["trigger_save"] = True 
+
+# 在界面上弹出成功提示（并自动清空消息标记）
+if st.session_state.pop("msg_rename", False):
+    st.success("重命名成功！")
+if msg_del := st.session_state.pop("msg_delete", False):
+    st.warning(msg_del)
 
 # ================= [新增] 2.5 侧边栏置顶传送门 =================
 backup_top_container = st.sidebar.container()
