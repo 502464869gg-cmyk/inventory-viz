@@ -526,7 +526,7 @@ if st.sidebar.button("➕ 新增一条在途货件槽位", use_container_width=T
     st.session_state[t_count_key] += 1
     st.rerun()
 
-# =================（原代码衔接处）=================
+# ================= 2. 🏭 采购中弹药库 =================
 saved_prod = c_data.get("prod", [{"ch": "HQYD-海运快线-限时达", "qty": 0}] * 5)
 p_count_key = f"p_count_{asin_name}"
 if p_count_key not in st.session_state: st.session_state[p_count_key] = max(5, len(saved_prod))
@@ -550,6 +550,27 @@ with col_p_g2:
     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
     st.button("🔄 同步交货日", use_container_width=True, on_click=sync_prod_dates, args=(asin_name, global_p_deliv), key=f"sync_p_{asin_name}")
 
+# 【新增：采购弹药库专属——独立槽位删除、全要素向上挤压对齐的回调函数】
+def cb_delete_prod_slot(idx_to_del, a_name):
+    current_count = st.session_state.get(f"p_count_{a_name}", 5)
+    fallback_date = st.session_state.get(f"start_date_{a_name}", datetime.date.today())
+    if current_count > 1:
+        # 数据传送带：将下层采购批次的所有渠道、数量、连环日历参数向上原样复制一格
+        for i in range(idx_to_del, current_count - 1):
+            st.session_state[f"p_ch_{i}_{a_name}"] = st.session_state.get(f"p_ch_{i+1}_{a_name}", "HQYD-海运快线-限时达")
+            st.session_state[f"p_deliv_{i}_{a_name}"] = st.session_state.get(f"p_deliv_{i+1}_{a_name}", fallback_date + datetime.timedelta(days=15))
+            st.session_state[f"p_buf_{i}_{a_name}"] = st.session_state.get(f"p_buf_{i+1}_{a_name}", 1)
+            st.session_state[f"p_ship_{i}_{a_name}"] = st.session_state.get(f"p_ship_{i+1}_{a_name}", fallback_date + datetime.timedelta(days=16))
+            st.session_state[f"p_qty_{i}_{a_name}"] = st.session_state.get(f"p_qty_{i+1}_{a_name}", 0)
+        
+        # 彻底擦除最后一格残留的状态缓存，防止数据重叠
+        last_idx = current_count - 1
+        for k in [f"p_ch_{last_idx}_{a_name}", f"p_deliv_{last_idx}_{a_name}", f"p_buf_{last_idx}_{a_name}", f"p_ship_{last_idx}_{a_name}", f"p_qty_{last_idx}_{a_name}"]:
+            if k in st.session_state: del st.session_state[k]
+        st.session_state[f"p_count_{a_name}"] -= 1
+    else:
+        st.session_state[f"p_qty_0_{a_name}"] = 0
+
 prod_state = []
 for i in range(st.session_state[p_count_key]):
     if i >= len(saved_prod): saved_prod.append({"ch": "HQYD-海运快线-限时达", "qty": 0})
@@ -568,21 +589,28 @@ for i in range(st.session_state[p_count_key]):
         try: st.session_state[s_key] = datetime.datetime.strptime(saved_p.get("ship_date", ""), '%Y-%m-%d').date()
         except: st.session_state[s_key] = st.session_state[d_key] + datetime.timedelta(days=st.session_state[b_key])
 
+    # 完整继承你引以为傲的三向双轨连环联动绑定逻辑
     sync_fwd, sync_bwd = create_callbacks(d_key, b_key, s_key)
 
-    with st.sidebar.expander(f"生产批次 {i+1} (手工预排参考)", expanded=False):
-        saved_ch = saved_p.get("ch", "HQYD-海运快线-限时达")
-        prod_index = ch_list.index(saved_ch) if saved_ch in ch_list else 3
-        prod_ch = st.selectbox(f"手工预排渠道 {i+1}", ch_list, index=prod_index, key=f"p_ch_{i}_{asin_name}")
+    with st.sidebar.expander(f"生产批次 {i+1} (手工预排参考)", expanded=(i==0 or int(st.session_state.get(f"p_qty_{i}_{asin_name}", saved_p.get("qty", 0))) > 0)):
+        # 【优化】头部结构完美整合垃圾桶独立删除按钮
+        del_col1, del_col2 = st.columns([8, 2])
+        with del_col2:
+            st.button("🗑️", key=f"del_p_btn_{i}_{asin_name}", help="删除此采购批次并向上对齐", on_click=cb_delete_prod_slot, args=(i, asin_name))
+        with del_col1:
+            saved_ch = saved_p.get("ch", "HQYD-海运快线-限时达")
+            prod_index = ch_list.index(saved_ch) if saved_ch in ch_list else 3
+            prod_ch = st.selectbox(f"手工预排渠道 {i+1}", ch_list, index=prod_index, key=f"p_ch_{i}_{asin_name}", label_visibility="collapsed")
         
         p_deliv = st.date_input("🏭 预计交货日", key=d_key, on_change=sync_fwd)
         c_1, c_2 = st.columns([4, 6])
         p_buf = c_1.number_input("⏳几天后发", min_value=0, key=b_key, on_change=sync_fwd)
         p_ship = c_2.date_input("🚢开船/起飞(截单日)", key=s_key, on_change=sync_bwd)
         
+        # 动态抓取时效文本，动态联动
         st.caption(f"🚀 轨迹: 预计 `{p_ship.strftime('%m-%d')}` 发车 + `{LOGISTICS_CHANNELS[prod_ch]}`天物流 + `{fba_delay}`天上架")
 
-        prod_qty = st.number_input(f"批次数量 {i+1}", min_value=0, value=int(saved_p.get("qty", 0)), step=50, key=f"p_qty_{i}_{asin_name}")
+        prod_qty = st.number_input(f"批次数量", min_value=0, value=int(saved_p.get("qty", 0)), step=50, key=f"p_qty_{i}_{asin_name}")
         
         if prod_qty > 0 and prod_qty % box_qty != 0:
             lower, upper = prod_qty - (prod_qty % box_qty), prod_qty + (box_qty - (prod_qty % box_qty))
@@ -594,10 +622,10 @@ for i in range(st.session_state[p_count_key]):
             days_to_ship = (p_ship - start_date).days
             prod_batches_raw.append({"id": i, "qty": prod_qty, "deliv_offset": days_to_ship, "manual_ch": prod_ch})
 
-c1_p, c2_p = st.sidebar.columns(2)
-if c1_p.button("➕ 增弹药槽", use_container_width=True, key=f"add_p_{asin_name}"): st.session_state[p_count_key] += 1; st.rerun()
-if c2_p.button("➖ 删弹药槽", use_container_width=True, key=f"del_p_{asin_name}"):
-    if st.session_state[p_count_key] > 1: st.session_state[p_count_key] -= 1; st.rerun()
+# 【优化】整行整合为单条美观的新增按钮
+if st.sidebar.button("➕ 新增一条采购中弹药槽位", use_container_width=True, key=f"add_p_{asin_name}"): 
+    st.session_state[p_count_key] += 1
+    st.rerun()
 
 # ================= 6. 侧边栏：新建发货分仓 =================
 saved_new = c_data.get("new", [{"ch": "HQYD-海运-合德", "qty": 0, "lead": 35}] * 5)

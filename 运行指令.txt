@@ -17,5 +17,5 @@ python -m streamlit run app2.py
 
 更新云端：
 git add .
-git commit -m "增加欧洲渠道"
+git commit -m "更新在途增删板块"
 git push origin main
