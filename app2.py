@@ -272,6 +272,8 @@ def handle_date_shift(a_name, config):
                 expected_ship = st.session_state[anchor_k] + datetime.timedelta(days=st.session_state[orig_lead_k])
                 new_dynamic_lead = max(0, (expected_ship - new_date).days)
                 st.session_state[lead_k] = new_dynamic_lead
+                # 【新增】确保当主推演日发生滑移时，新建分仓的独立日历控件能够同步无缝对齐
+                st.session_state[f"n_ship_date_{i}_{a_name}"] = expected_ship
 
         st.session_state[p_key] = new_date
 
@@ -603,17 +605,20 @@ n_count_key = f"n_count_{asin_name}"
 if n_count_key not in st.session_state: st.session_state[n_count_key] = max(5, len(saved_new))
 
 st.sidebar.subheader(f"3. 📝 新建发货分仓 ({st.session_state[n_count_key]}槽)")
+# 锁定默认全局交期天数为 35 天
 global_lead = int(c_data.get("global_lead", 35))
 global_lead_ui = st.sidebar.number_input("🏭 默认交期/备货(天)", min_value=0, value=global_lead, key=f"global_lead_{asin_name}")
 
+# 【重构：同步备货天数回调，将全局交期一次性灌入各槽位，并默认将建单日看齐推演日】
 def sync_lead_days(a_name):
     g_lead_ui = st.session_state[f"global_lead_{a_name}"]
     n_cnt = st.session_state.get(f"n_count_{a_name}", 5)
-    c_date = st.session_state[f"start_date_{a_name}"]
+    start_k = f"start_date_{a_name}"
+    c_date = st.session_state.get(start_k, datetime.date.today())
     for idx in range(n_cnt):
-        st.session_state[f"n_lead_{idx}_{a_name}"] = g_lead_ui
-        st.session_state[f"n_anchor_{idx}_{a_name}"] = c_date
-        st.session_state[f"n_orig_lead_{idx}_{a_name}"] = g_lead_ui
+        st.session_state[f"n_anchor_{idx}_{a_name}"] = c_date          # 采购建单日看齐主推演起始日
+        st.session_state[f"n_orig_lead_{idx}_{a_name}"] = g_lead_ui     # 独立交期同步全局默认
+        st.session_state[f"n_lead_{idx}_{a_name}"] = g_lead_ui          # 相对发车偏移量重算
 
 def force_update_all_anchors(a_name):
     n_cnt = st.session_state.get(f"n_count_{a_name}", 5)
@@ -625,29 +630,34 @@ def force_update_all_anchors(a_name):
             orig_lead_k = f"n_orig_lead_{idx}_{a_name}"
             if lead_k in st.session_state:
                 st.session_state[anchor_k] = st.session_state[start_k]
-                st.session_state[orig_lead_k] = st.session_state[lead_k]
+                # 重新校准：相对发车天数重新向交期对齐
+                st.session_state[lead_k] = st.session_state.get(orig_lead_k, 35)
 
 col_ctrl1, col_ctrl2 = st.sidebar.columns(2)
 col_ctrl1.button("🔄 同步备货天数", use_container_width=True, on_click=sync_lead_days, args=(asin_name,))
-col_ctrl2.button("🔄 全局刷新建单", use_container_width=True, on_click=force_update_all_anchors, args=(asin_name,), help="不改变现有天数，仅将所有草稿的建单日统一锁定为当前的推演起始日")
+col_ctrl2.button("🔄 全局刷新建单", use_container_width=True, on_click=force_update_all_anchors, args=(asin_name,), help="不改变现有交期，仅将所有草稿的采购建单日统一锁定为当前的推演起始日")
 
-def draft_lead_changed(idx, a_name):
-    lead_k = f"n_lead_{idx}_{a_name}"
-    anchor_k = f"n_anchor_{idx}_{a_name}"
-    orig_lead_k = f"n_orig_lead_{idx}_{a_name}"
-    start_k = f"start_date_{a_name}"
-    if lead_k in st.session_state and start_k in st.session_state:
-        st.session_state[anchor_k] = st.session_state[start_k]
-        st.session_state[orig_lead_k] = st.session_state[lead_k]
-
-def force_update_anchor(idx, a_name):
-    lead_k = f"n_lead_{idx}_{a_name}"
-    anchor_k = f"n_anchor_{idx}_{a_name}"
-    orig_lead_k = f"n_orig_lead_{idx}_{a_name}"
-    start_k = f"start_date_{a_name}"
-    if lead_k in st.session_state and start_k in st.session_state:
-        st.session_state[anchor_k] = st.session_state[start_k]
-        st.session_state[orig_lead_k] = st.session_state[lead_k]
+# 【重构：独立删除回调函数，升级支持全要素采购链条的向上推平对齐】
+def cb_delete_new_slot(idx_to_del, a_name):
+    current_count = st.session_state.get(f"n_count_{a_name}", 5)
+    fallback_date = st.session_state.get(f"start_date_{a_name}", datetime.date.today())
+    global_lead_val = st.session_state.get(f"global_lead_{a_name}", 35)
+    if current_count > 1:
+        # 数据传送带：将下层槽位的所有专属采购参数同步向上无缝平移一格
+        for i in range(idx_to_del, current_count - 1):
+            st.session_state[f"n_ch_{i}_{a_name}"] = st.session_state.get(f"n_ch_{i+1}_{a_name}", "HQYD-海运-合德")
+            st.session_state[f"n_qty_{i}_{a_name}"] = st.session_state.get(f"n_qty_{i+1}_{a_name}", 0)
+            st.session_state[f"n_lead_{i}_{a_name}"] = st.session_state.get(f"n_lead_{i+1}_{a_name}", global_lead_val)
+            st.session_state[f"n_anchor_{i}_{a_name}"] = st.session_state.get(f"n_anchor_{i+1}_{a_name}", fallback_date)
+            st.session_state[f"n_orig_lead_{i}_{a_name}"] = st.session_state.get(f"n_orig_lead_{i+1}_{a_name}", global_lead_val)
+        
+        # 严格擦除尾部的状态垃圾缓存
+        last_idx = current_count - 1
+        for k in [f"n_ch_{last_idx}_{a_name}", f"n_qty_{last_idx}_{a_name}", f"n_lead_{last_idx}_{a_name}", f"n_anchor_{last_idx}_{a_name}", f"n_orig_lead_{last_idx}_{a_name}"]:
+            if k in st.session_state: del st.session_state[k]
+        st.session_state[f"n_count_{a_name}"] -= 1
+    else:
+        st.session_state[f"n_qty_0_{a_name}"] = 0
 
 new_state = []
 user_new_batches = []
@@ -657,10 +667,11 @@ for i in range(st.session_state[n_count_key]):
     if i >= len(saved_new): 
         saved_new.append({"ch": "HQYD-海运-合德", "qty": 0, "lead": global_lead, "anchor_date": start_date.strftime('%Y-%m-%d'), "orig_lead": global_lead})
         
-    anchor_k = f"n_anchor_{i}_{asin_name}"
-    orig_lead_k = f"n_orig_lead_{i}_{asin_name}"
-    lead_key = f"n_lead_{i}_{asin_name}"
+    anchor_k = f"n_anchor_{i}_{asin_name}"          # 采购建单日期存储键
+    orig_lead_k = f"n_orig_lead_{i}_{asin_name}"    # 专属工厂交期天数存储键
+    lead_key = f"n_lead_{i}_{asin_name}"            # 相对大盘的发车偏移量存储键
     
+    # 智能兜底初始化
     if anchor_k not in st.session_state:
         ad_str = saved_new[i].get("anchor_date", start_date.strftime('%Y-%m-%d'))
         try: st.session_state[anchor_k] = datetime.datetime.strptime(ad_str, '%Y-%m-%d').date()
@@ -668,35 +679,38 @@ for i in range(st.session_state[n_count_key]):
         
     if orig_lead_k not in st.session_state:
         st.session_state[orig_lead_k] = int(saved_new[i].get("orig_lead", saved_new[i].get("lead", global_lead)))
-        
-    if lead_key not in st.session_state:
-        expected = st.session_state[anchor_k] + datetime.timedelta(days=st.session_state[orig_lead_k])
-        st.session_state[lead_key] = max(0, (expected - start_date).days)
 
-    with st.sidebar.expander(f"发货分仓 {i+1}", expanded=(i==0)):
-        saved_n_ch = saved_new[i].get("ch", "HQYD-海运-合德")
-        new_index = ch_list.index(saved_n_ch) if saved_n_ch in ch_list else 5
-        new_ch = st.selectbox(f"预定物流 {i+1}", ch_list, key=f"n_ch_{i}_{asin_name}", index=new_index)
+    with st.sidebar.expander(f"发货分仓 {i+1}", expanded=(i==0 or int(st.session_state.get(f"n_qty_{i}_{asin_name}", saved_new[i].get("qty", 0))) > 0)):
+        # 1. 垃圾桶与渠道选择器整合
+        del_col1, del_col2 = st.columns([8, 2])
+        with del_col2:
+            st.button("🗑️", key=f"del_n_btn_{i}_{asin_name}", help="删除此分仓草稿并向上对齐", on_click=cb_delete_new_slot, args=(i, asin_name))
+        with del_col1:
+            saved_n_ch = saved_new[i].get("ch", "HQYD-海运-合德")
+            new_index = ch_list.index(saved_n_ch) if saved_n_ch in ch_list else 5
+            new_ch = st.selectbox(f"预定物流 {i+1}", ch_list, key=f"n_ch_{i}_{asin_name}", index=new_index, label_visibility="collapsed")
         
-        anchor_date = st.session_state[anchor_k]
-        expected_ship = anchor_date + datetime.timedelta(days=st.session_state[orig_lead_k])
-        label = f"距离发车(天) {i+1} [📌 {anchor_date.strftime('%m-%d')}建单 | 🚀 预计 {expected_ship.strftime('%m-%d')} 发]"
+        # 2. 核心改变：双列并排摆放独立的 [采购建单日期] 和 [交期/备货(天)]
+        date_col, lead_col = st.columns([6, 4])
+        chosen_buy_date = date_col.date_input("📅 采购建单日期", key=anchor_k)
+        chosen_lead_days = lead_col.number_input("🏭 交期/备货(天)", min_value=0, key=orig_lead_k)
         
-        c_lead1, c_lead2 = st.columns([6, 4])
-        with c_lead1:
-            new_lead = st.number_input(label, min_value=0, key=lead_key, on_change=draft_lead_changed, args=(i, asin_name))
-        with c_lead2:
-            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-            st.button("🔄 刷新建单日", key=f"upd_anchor_{i}_{asin_name}", on_click=force_update_anchor, args=(i, asin_name), help="将此草稿的建单锚点强制刷新为当前的推演起始日")
+        # 3. 动态时间轴多维对齐测算（应对主推演起始日滑移的核心魔法）
+        expected_ship_date = chosen_buy_date + datetime.timedelta(days=chosen_lead_days)
+        new_lead = (expected_ship_date - start_date).days
+        st.session_state[lead_key] = max(0, new_lead) # 无缝对齐相对坐标传输网
+        
+        # 4. 面板状态精简呈现
+        st.markdown(f"🚀 **预计发车日期**：`{expected_ship_date.strftime('%Y-%m-%d')}` *(距离推演日: {new_lead}天)*")
             
-        new_qty = st.number_input(f"计划发货数量 {i+1}", min_value=0, value=int(saved_new[i].get("qty", 0)), step=1, key=f"n_qty_{i}_{asin_name}")
+        new_qty = st.number_input(f"计划发货数量", min_value=0, value=int(saved_new[i].get("qty", 0)), step=1, key=f"n_qty_{i}_{asin_name}")
         
         new_state.append({
             "ch": new_ch, 
             "qty": new_qty, 
-            "lead": new_lead,
-            "anchor_date": st.session_state[anchor_k].strftime('%Y-%m-%d'),
-            "orig_lead": st.session_state[orig_lead_k]
+            "lead": max(0, new_lead),
+            "anchor_date": chosen_buy_date.strftime('%Y-%m-%d'),
+            "orig_lead": chosen_lead_days
         })
         
         if new_qty > 0 and new_qty % box_qty != 0:
@@ -705,14 +719,16 @@ for i in range(st.session_state[n_count_key]):
             
         if new_qty > 0:
             user_new_total_qty += new_qty
-            total_days_needed = new_lead + LOGISTICS_CHANNELS[new_ch] + fba_delay
+            # 5. 动态抓取时效：发车相对天数 + 渠道时效天数 + 全局上架延迟天数
+            actual_channel_days = LOGISTICS_CHANNELS.get(new_ch, 35)
+            total_days_needed = max(0, new_lead) + actual_channel_days + fba_delay
             user_new_batches.append({"name": f"新单{i+1}:{new_ch.split('-')[-1]}", "qty": new_qty, "day": total_days_needed})
-            st.caption(f"🚀 轨迹: `{new_lead}`天后发车 + `{LOGISTICS_CHANNELS[new_ch]}`天物流 + `{fba_delay}`天上架")
+            st.caption(f"📈 轨迹: 预计 `{expected_ship_date.strftime('%m-%d')}` 发车 + `{actual_channel_days}`天物流 + `{fba_delay}`天上架")
 
-c1_n, c2_n = st.sidebar.columns(2)
-if c1_n.button("➕ 增分仓槽", use_container_width=True, key=f"add_n_{asin_name}"): st.session_state[n_count_key] += 1; st.rerun()
-if c2_n.button("➖ 删分仓槽", use_container_width=True, key=f"del_n_{asin_name}"):
-    if st.session_state[n_count_key] > 1: st.session_state[n_count_key] -= 1; st.rerun()
+# 整合为整行美化的槽位新增按钮
+if st.sidebar.button("➕ 新增一条发货分仓槽位", use_container_width=True, key=f"add_n_{asin_name}"): 
+    st.session_state[n_count_key] += 1
+    st.rerun()
 
 
 # ================= 5. 数据存储层 =================
