@@ -433,9 +433,12 @@ with st.sidebar.expander("展开设置预留库存", expanded=False):
             release_today = daily_fc + (1 if d <= remainder else 0)
             if release_today > 0: baseline_batches.append({"name": "FC滴灌", "qty": release_today, "day": d, "hide_label": True})
 
-saved_transit_list = c_data.get("transit_list", [{"ch": "HQYD-海运快线-限时达", "ship_date": start_date.strftime('%Y-%m-%d'), "qty": 0}] * 8)
+# --- 下方为核心替换区：已发货在途 ---
+
+# 【修改1：将默认新槽位数量由 8 降至 5，保留名称 name 字段】
+saved_transit_list = c_data.get("transit_list", [{"name": "", "ch": "HQYD-海运快线-限时达", "ship_date": start_date.strftime('%Y-%m-%d'), "qty": 0}] * 5)
 t_count_key = f"t_count_{asin_name}"
-if t_count_key not in st.session_state: st.session_state[t_count_key] = max(8, len(saved_transit_list))
+if t_count_key not in st.session_state: st.session_state[t_count_key] = max(5, len(saved_transit_list))
 
 st.sidebar.subheader(f"1. 🚢 已发货在途 ({st.session_state[t_count_key]}槽)")
 col_t_g1, col_t_g2 = st.sidebar.columns([6, 4])
@@ -443,7 +446,7 @@ with col_t_g1:
     global_t_date = st.date_input("🌍 全局实际发货日", value=start_date, key=f"g_t_date_{asin_name}")
 
 def sync_transit_dates(a_name, target_date):
-    t_cnt = st.session_state.get(f"t_count_{a_name}", 8)
+    t_cnt = st.session_state.get(f"t_count_{a_name}", 5)
     for idx in range(t_cnt):
         st.session_state[f"t_date_{idx}_{a_name}"] = target_date
 
@@ -451,9 +454,34 @@ with col_t_g2:
     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
     st.button("🔄 同步发货日", use_container_width=True, on_click=sync_transit_dates, args=(asin_name, global_t_date), key=f"sync_t_{asin_name}")
 
+# 【修改2：底层魔法——独立删除并向上对齐的回调函数】
+def cb_delete_transit_slot(idx_to_del, a_name):
+    current_count = st.session_state.get(f"t_count_{a_name}", 5)
+    fallback_date = st.session_state.get(f"start_date_{a_name}", datetime.date.today())
+    if current_count > 1:
+        # 将被删槽位下方的所有数据，依次向上移动一格
+        for i in range(idx_to_del, current_count - 1):
+            st.session_state[f"t_name_{i}_{a_name}"] = st.session_state.get(f"t_name_{i+1}_{a_name}", "")
+            st.session_state[f"t_ch_{i}_{a_name}"] = st.session_state.get(f"t_ch_{i+1}_{a_name}", "HQYD-海运快线-限时达")
+            st.session_state[f"t_date_{i}_{a_name}"] = st.session_state.get(f"t_date_{i+1}_{a_name}", fallback_date)
+            st.session_state[f"t_qty_{i}_{a_name}"] = st.session_state.get(f"t_qty_{i+1}_{a_name}", 0)
+        
+        # 清理原先排在最后一个的冗余状态缓存
+        last_idx = current_count - 1
+        for k in [f"t_name_{last_idx}_{a_name}", f"t_ch_{last_idx}_{a_name}", f"t_date_{last_idx}_{a_name}", f"t_qty_{last_idx}_{a_name}"]:
+            if k in st.session_state: del st.session_state[k]
+            
+        st.session_state[f"t_count_{a_name}"] -= 1
+    else:
+        # 仅剩最后1个槽位时，直接清空内容而不销毁 UI
+        st.session_state[f"t_name_0_{a_name}"] = ""
+        st.session_state[f"t_qty_0_{a_name}"] = 0
+
 transit_state = []
 for i in range(st.session_state[t_count_key]):
-    if i >= len(saved_transit_list): saved_transit_list.append({"ch": "HQYD-海运快线-限时达", "ship_date": start_date.strftime('%Y-%m-%d'), "qty": 0})
+    if i >= len(saved_transit_list): saved_transit_list.append({"name": "", "ch": "HQYD-海运快线-限时达", "ship_date": start_date.strftime('%Y-%m-%d'), "qty": 0})
+    
+    saved_t_name = saved_transit_list[i].get("name", "")
     try: saved_t_date = datetime.datetime.strptime(saved_transit_list[i].get("ship_date", start_date.strftime('%Y-%m-%d')), '%Y-%m-%d').date()
     except: saved_t_date = start_date
     t_ch_saved = saved_transit_list[i].get("ch", "HQYD-海运快线-限时达")
@@ -461,25 +489,42 @@ for i in range(st.session_state[t_count_key]):
     t_qty_saved = int(saved_transit_list[i].get("qty", 0))
 
     with st.sidebar.expander(f"在途货件 {i+1}", expanded=(i==0 or t_qty_saved > 0)):
-        t_ch = st.selectbox(f"发运渠道 {i+1}", ch_list, index=t_index, key=f"t_ch_{i}_{asin_name}")
-        t_date = st.date_input(f"实际发货日 {i+1}", value=saved_t_date, key=f"t_date_{i}_{asin_name}")
-        t_qty = st.number_input(f"发货数量 {i+1}", min_value=0, value=t_qty_saved, step=50, key=f"t_qty_{i}_{asin_name}")
+        # 【修改3：表头加入名称自定义和独立删除按钮】
+        del_col1, del_col2 = st.columns([8, 2])
+        with del_col2:
+            st.button("🗑️", key=f"del_t_btn_{i}_{asin_name}", help="删除此货件并向上对齐", on_click=cb_delete_transit_slot, args=(i, asin_name))
+        with del_col1:
+            t_name = st.text_input(f"自定义备注 (如 PO单号)", value=saved_t_name, key=f"t_name_{i}_{asin_name}")
+            
+        t_ch = st.selectbox(f"发运渠道", ch_list, index=t_index, key=f"t_ch_{i}_{asin_name}")
+        t_date = st.date_input(f"实际发货日", value=saved_t_date, key=f"t_date_{i}_{asin_name}")
+        
+        # 【修改4：动态物流轨迹预测文字】
+        actual_logistics_days = LOGISTICS_CHANNELS.get(t_ch, 30)
+        st.caption(f"🚀 轨迹: 预计 `{t_date.strftime('%m-%d')}` 发车 + `{actual_logistics_days}`天物流 + `{fba_delay}`天上架")
+        
+        t_qty = st.number_input(f"发货数量", min_value=0, value=t_qty_saved, step=50, key=f"t_qty_{i}_{asin_name}")
         
         if t_qty > 0 and t_qty % box_qty != 0:
             lower, upper = t_qty - (t_qty % box_qty), t_qty + (box_qty - (t_qty % box_qty))
             st.warning(f"⚠️ `{t_qty}件` 非整箱！建议: **`{lower}件`** 或 **`{upper}件`**")
             
-        transit_state.append({"ch": t_ch, "ship_date": t_date.strftime('%Y-%m-%d'), "qty": t_qty})
+        # 存入大盘状态
+        transit_state.append({"name": t_name, "ch": t_ch, "ship_date": t_date.strftime('%Y-%m-%d'), "qty": t_qty})
         if t_qty > 0:
-            arr_date = t_date + datetime.timedelta(days=LOGISTICS_CHANNELS[t_ch] + fba_delay)
+            arr_date = t_date + datetime.timedelta(days=actual_logistics_days + fba_delay)
             days_to_arr = (arr_date - start_date).days
-            if days_to_arr > 0: baseline_batches.append({"name": f"在途{i+1}:{t_ch.split('-')[-1]}", "qty": t_qty, "day": days_to_arr})
+            if days_to_arr > 0: 
+                # 【修改5：画图引擎自动读取你的自定义名称】
+                display_name = t_name if t_name.strip() != "" else f"在途{i+1}:{t_ch.split('-')[-1]}"
+                baseline_batches.append({"name": display_name, "qty": t_qty, "day": days_to_arr})
 
-c1_t, c2_t = st.sidebar.columns(2)
-if c1_t.button("➕ 增在途槽", use_container_width=True, key=f"add_t_{asin_name}"): st.session_state[t_count_key] += 1; st.rerun()
-if c2_t.button("➖ 删在途槽", use_container_width=True, key=f"del_t_{asin_name}"):
-    if st.session_state[t_count_key] > 1: st.session_state[t_count_key] -= 1; st.rerun()
+# 【修改6：由于支持独立删除了，底部只需保留一个整行的“新增”按钮】
+if st.sidebar.button("➕ 新增一条在途货件槽位", use_container_width=True, key=f"add_t_{asin_name}"): 
+    st.session_state[t_count_key] += 1
+    st.rerun()
 
+# =================（原代码衔接处）=================
 saved_prod = c_data.get("prod", [{"ch": "HQYD-海运快线-限时达", "qty": 0}] * 5)
 p_count_key = f"p_count_{asin_name}"
 if p_count_key not in st.session_state: st.session_state[p_count_key] = max(5, len(saved_prod))
