@@ -150,14 +150,14 @@ with col_top1:
         st.markdown("📌 **历史档案直达：**")
         asin_keys = list(all_configs.keys())
         buttons_per_row = 8
+        def switch_asin(new_asin): st.session_state.asin_input = new_asin
+        
         for i in range(0, len(asin_keys), buttons_per_row):
             batch_keys = asin_keys[i:i+buttons_per_row]
             cols = st.columns(buttons_per_row)
             for idx, saved_asin in enumerate(batch_keys):
                 btn_style = "primary" if saved_asin == st.session_state.asin_input else "secondary"
-                if cols[idx].button(f"🏷️ {saved_asin}", key=f"q_{saved_asin}", type=btn_style, use_container_width=True):
-                    st.session_state.asin_input = saved_asin
-                    st.rerun()
+                cols[idx].button(f"🏷️ {saved_asin}", key=f"q_{saved_asin}", type=btn_style, use_container_width=True, on_click=switch_asin, args=(saved_asin,))
 
 st.divider()
 
@@ -421,10 +421,11 @@ daily_sales_array = []
 for p in phases: daily_sales_array.extend([p["sales"]] * p["days"])
 daily_sales_array.extend([global_sales] * 400) 
 
-# 整合为整行美化的槽位新增按钮，彻底移除原本底部的全局“减号”删除按钮
-if st.sidebar.button("➕ 新增一个大促促销阶段", use_container_width=True, key=f"add_ph_{asin_name}"): 
-    st.session_state[phase_count_key] += 1
-    st.rerun()
+# 提前定义全局增加槽位的安全回调函数
+def cb_add_slot(k): st.session_state[k] += 1
+
+# 整合为整行美化的槽位新增按钮 (采用 on_click 机制取代强制重启，防丢 ASIN)
+st.sidebar.button("➕ 新增一个大促促销阶段", use_container_width=True, key=f"add_ph_{asin_name}", on_click=cb_add_slot, args=(phase_count_key,))
 
 # ================= 4. 供给侧前置录入 =================
 baseline_batches = [] 
@@ -530,10 +531,8 @@ for i in range(st.session_state[t_count_key]):
                 display_name = t_name if t_name.strip() != "" else f"在途{i+1}:{t_ch.split('-')[-1]}"
                 baseline_batches.append({"name": display_name, "qty": t_qty, "day": days_to_arr})
 
-# 【修改6：由于支持独立删除了，底部只需保留一个整行的“新增”按钮】
-if st.sidebar.button("➕ 新增一条在途货件槽位", use_container_width=True, key=f"add_t_{asin_name}"): 
-    st.session_state[t_count_key] += 1
-    st.rerun()
+# 【修改6：采用 on_click 安全增加槽位】
+st.sidebar.button("➕ 新增一条在途货件槽位", use_container_width=True, key=f"add_t_{asin_name}", on_click=cb_add_slot, args=(t_count_key,))
 
 # ================= 2. 🏭 采购中弹药库 =================
 saved_prod = c_data.get("prod", [{"ch": "HQYD-海运快线-限时达", "qty": 0}] * 5)
@@ -632,9 +631,7 @@ for i in range(st.session_state[p_count_key]):
             prod_batches_raw.append({"id": i, "qty": prod_qty, "deliv_offset": days_to_ship, "manual_ch": prod_ch})
 
 # 【优化】整行整合为单条美观的新增按钮
-if st.sidebar.button("➕ 新增一条采购中弹药槽位", use_container_width=True, key=f"add_p_{asin_name}"): 
-    st.session_state[p_count_key] += 1
-    st.rerun()
+st.sidebar.button("➕ 新增一条采购中弹药槽位", use_container_width=True, key=f"add_p_{asin_name}", on_click=cb_add_slot, args=(p_count_key,))
 
 # ================= 6. 侧边栏：新建发货分仓 =================
 saved_new = c_data.get("new", [{"ch": "HQYD-海运-合德", "qty": 0, "lead": 35}] * 5)
@@ -763,9 +760,7 @@ for i in range(st.session_state[n_count_key]):
             st.caption(f"📈 轨迹: 预计 `{expected_ship_date.strftime('%m-%d')}` 发车 + `{actual_channel_days}`天物流 + `{fba_delay}`天上架")
 
 # 整合为整行美化的槽位新增按钮
-if st.sidebar.button("➕ 新增一条发货分仓槽位", use_container_width=True, key=f"add_n_{asin_name}"): 
-    st.session_state[n_count_key] += 1
-    st.rerun()
+st.sidebar.button("➕ 新增一条发货分仓槽位", use_container_width=True, key=f"add_n_{asin_name}", on_click=cb_add_slot, args=(n_count_key,))
 
 
 # ================= 5. 数据存储层 =================
