@@ -12,22 +12,16 @@
         "fast_pct": 40,
         "phases": [
             {
-                "name": "PD前",
-                "end_date": "2026-06-22",
-                "days": 1,
-                "sales": 10
-            },
-            {
                 "name": "PD",
                 "end_date": "2026-06-26",
-                "days": 4,
-                "sales": 15
+                "days": 5,
+                "sales": 17
             },
             {
                 "name": "PD后",
                 "end_date": "2026-06-30",
                 "days": 4,
-                "sales": 15
+                "sales": 17
             },
             {
                 "name": "7月BD",
@@ -39,7 +33,7 @@
                 "name": "7月BD后",
                 "end_date": "2026-08-02",
                 "days": 21,
-                "sales": 16
+                "sales": 18
             },
             {
                 "name": "8月BD",
@@ -49,9 +43,21 @@
             },
             {
                 "name": "8月BD后",
-                "end_date": "2026-09-15",
-                "days": 30,
+                "end_date": "2026-09-06",
+                "days": 21,
                 "sales": 20
+            },
+            {
+                "name": "9月BD",
+                "end_date": "2026-09-20",
+                "days": 14,
+                "sales": 30
+            },
+            {
+                "name": "9月BD后",
+                "end_date": "2026-10-11",
+                "days": 21,
+                "sales": 25
             }
         ],
         "fc": {
@@ -177,7 +183,7 @@
             }
         ],
         "view_mode": "展开节点详情 (错落防撞)",
-        "y_offset": 55
+        "y_offset": 65
     },
     "BFN-142-US": {
         "initial_stock": 627,

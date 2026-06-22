@@ -17,5 +17,5 @@ python -m streamlit run app2.py
 
 更新云端：
 git add .
-git commit -m "26-6-22周一_更新可视化碰撞算法"
+git commit -m "26-6-22周一_更新可视化面板"
 git push origin main

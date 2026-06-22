@@ -1362,7 +1362,7 @@ for b in final_all_batches:
     total_qty_dict[arr_date] += b['qty']
 
 # 🌟🌟🌟 【核心优化】引入智能双向防撞雷达引擎 🌟🌟🌟
-base_ay = 45
+base_ay = 50
 step_ay = st.session_state.get(y_offset_key, 65)
 
 # 1. 动态计算 Y 轴垂直安全阈值：取图表最高库存的 12% 作为“高度相近”的判定标准（保底 100 件）
