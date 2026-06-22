@@ -165,6 +165,11 @@ st.divider()
 asin_name = st.session_state.get("asin_input", DEFAULT_ASIN)
 c_data = all_configs.get(asin_name, {})
 
+# 🚀【新增：动态守卫】当大盘切换了选中的 ASIN 时，强制将重命名框的值同步更新为当前最新的 ASIN 名称
+if "current_tracked_asin" not in st.session_state or st.session_state["current_tracked_asin"] != asin_name:
+    st.session_state["current_tracked_asin"] = asin_name
+    st.session_state["new_asin_name_input"] = asin_name
+
 # --- 核心状态与 Callback 提前定义 ---
 view_mode_key = f"view_mode_{asin_name}"
 if view_mode_key not in st.session_state:
