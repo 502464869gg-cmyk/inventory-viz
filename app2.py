@@ -161,8 +161,8 @@ with col_top1:
 
 st.divider()
 
-col_b1, col_b2, col_b3, col_b4 = st.columns([2.5, 2.5, 2, 3])
-asin_name = col_b1.text_input("当前推演 ASIN", key="asin_input")
+# 1. 🌟【状态先行】优先从 session_state 预加载当前选定的 ASIN 核心档案（不在此处渲染组件）
+asin_name = st.session_state.get("asin_input", DEFAULT_ASIN)
 c_data = all_configs.get(asin_name, {})
 
 # --- 核心状态与 Callback 提前定义 ---
@@ -208,7 +208,9 @@ def apply_ai_plan(plan_list, lead):
 start_date_key = f"start_date_{asin_name}"
 prev_date_key = f"prev_start_date_{asin_name}"
 stock_key = f"initial_stock_{asin_name}"
+box_qty_key = f"box_qty_{asin_name}"
 
+# 2. 🌟 预先对推演日、可用库存、单箱数进行智能保底初始化与滑移对齐
 if start_date_key not in st.session_state:
     init_start = get_beijing_today()
     if "start_date" in c_data:
@@ -219,19 +221,22 @@ if start_date_key not in st.session_state:
 if prev_date_key not in st.session_state:
     st.session_state[prev_date_key] = st.session_state[start_date_key]
 
+if stock_key not in st.session_state:
+    st.session_state[stock_key] = int(c_data.get("initial_stock", DEFAULT_STOCK))
+
+if box_qty_key not in st.session_state:
+    st.session_state[box_qty_key] = int(c_data.get("box_qty", 7))
+
 def handle_date_shift(a_name, config):
     s_key = f"start_date_{a_name}"
     p_key = f"prev_start_date_{a_name}"
     stk_key = f"initial_stock_{a_name}"
-
     new_date = st.session_state[s_key]
     prev_date = st.session_state.get(p_key, new_date)
-
     if new_date != prev_date:
         delta_days = (new_date - prev_date).days
         global_s = int(config.get("global_sales", 10))
         phases = config.get("phases", [])
-
         if delta_days > 0:
             calc_start = prev_date
             days_to_calc = delta_days
@@ -240,7 +245,6 @@ def handle_date_shift(a_name, config):
             calc_start = new_date
             days_to_calc = abs(delta_days)
             sign = 1  
-
         current_phase_start = calc_start
         daily_sales = []
         for p in phases:
@@ -250,19 +254,15 @@ def handle_date_shift(a_name, config):
                 except: p_end = current_phase_start + datetime.timedelta(days=29)
             else:
                 p_end = current_phase_start + datetime.timedelta(days=p.get("days", 30)-1)
-            
             p_days = (p_end - current_phase_start).days + 1
             if p_days > 0:
                 daily_sales.extend([int(p.get("sales", global_s))] * p_days)
                 current_phase_start = p_end + datetime.timedelta(days=1)
-        
         daily_sales.extend([global_s] * (days_to_calc + 30))
         sales_in_period = sum(daily_sales[:days_to_calc])
-
         old_stock = st.session_state.get(stk_key, int(config.get("initial_stock", DEFAULT_STOCK)))
         new_stock = old_stock + (sign * sales_in_period)
         st.session_state[stk_key] = max(0, new_stock) 
-
         n_count = st.session_state.get(f"n_count_{a_name}", max(5, len(config.get("new", []))))
         for i in range(n_count):
             lead_k = f"n_lead_{i}_{a_name}"
@@ -272,23 +272,17 @@ def handle_date_shift(a_name, config):
                 expected_ship = st.session_state[anchor_k] + datetime.timedelta(days=st.session_state[orig_lead_k])
                 new_dynamic_lead = max(0, (expected_ship - new_date).days)
                 st.session_state[lead_k] = new_dynamic_lead
-                # 【新增】确保当主推演日发生滑移时，新建分仓的独立日历控件能够同步无缝对齐
                 st.session_state[f"n_ship_date_{i}_{a_name}"] = expected_ship
-
         st.session_state[p_key] = new_date
 
 def sync_today_action(a_name, config):
     st.session_state[f"start_date_{a_name}"] = get_beijing_today()
     handle_date_shift(a_name, config)
 
-initial_stock = col_b2.number_input("可用库存", min_value=0, value=int(c_data.get("initial_stock", DEFAULT_STOCK)), key=stock_key)
-box_qty = col_b3.number_input("📦 单箱数", min_value=1, value=int(c_data.get("box_qty", 7)), key=f"box_qty_{asin_name}")
-
-with col_b4:
-    c_b4_1, c_b4_2 = st.columns([6, 4])
-    start_date = c_b4_1.date_input("📅 推演起始日", key=start_date_key, on_change=handle_date_shift, args=(asin_name, c_data))
-    st.markdown("""<style>div[data-testid="column"]:nth-of-type(4) div[data-testid="stButton"] {margin-top: 28px;}</style>""", unsafe_allow_html=True)
-    c_b4_2.button("🔄 同步今日", on_click=sync_today_action, args=(asin_name, c_data))
+# 3. 🌟 为下游中生代的核心供应链大盘运算进行原生数值锁定（无缝维持原有大盘运转）
+initial_stock = st.session_state[stock_key]
+box_qty = st.session_state[box_qty_key]
+start_date = st.session_state[start_date_key]
 
 # 提前定义回调函数，让状态修改在页面重新渲染前提前结算
 def cb_rename_asin(old_asin):
@@ -1284,6 +1278,20 @@ if target_date:
     fba_delay_plot = int(c_data.get("fba_delay", 5))
     total_days_back = global_lead_plot + fastest_sea_time_plot + fba_delay_plot
     suggested_buy_date = target_date - datetime.timedelta(days=total_days_back)
+
+# 🌟🌟🌟【优化大盘布局】将核心配置输入行下沉至此，合并归拢便于高管层截图复盘与审批汇报 🌟🌟🌟
+st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
+col_b1, col_b2, col_b3, col_b4 = st.columns([2.5, 2.5, 2, 3])
+col_b1.text_input("当前推演 ASIN", key="asin_input")
+col_b2.number_input("可用库存", min_value=0, key=stock_key)
+col_b3.number_input("📦 单箱数", min_value=1, key=box_qty_key)
+
+with col_b4:
+    c_b4_1, c_b4_2 = st.columns([6, 4])
+    c_b4_1.date_input("📅 推演起始日", key=start_date_key, on_change=handle_date_shift, args=(asin_name, c_data))
+    st.markdown("""<style>div[data-testid="column"]:nth-of-type(4) div[data-testid="stButton"] {margin-top: 28px;}</style>""", unsafe_allow_html=True)
+    c_b4_2.button("🔄 同步今日", on_click=sync_today_action, args=(asin_name, c_data), key=f"sync_today_btn_bottom_{asin_name}")
+st.divider()
 
 # 顶部指标卡渲染
 c1, c2, c3, c4 = st.columns(4)
