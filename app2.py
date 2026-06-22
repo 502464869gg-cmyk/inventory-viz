@@ -1377,25 +1377,80 @@ for b in final_all_batches:
     arrival_dict[arr_date].append(f"{b['name']}({b['qty']}件)")
     total_qty_dict[arr_date] += b['qty']
 
-# 🌟🌟🌟 【核心优化】全量模糊防撞探测引擎 🌟🌟🌟
-base_ay = 50 # 【修复】：整体加长基础绿色箭头起步尺寸（从 45 提升至 50）
+# 🌟🌟🌟 【全新升级】全图级智能防撞雷达系统预载 🌟🌟🌟
+placed_labels = [] # 提前建立雷达内存：不仅记录绿色气泡，还要把各种预警提示牌全部记录进去
+
+if first_safety_drop_date:
+    y_val_first = df_plot[df_plot["Date"] == first_safety_drop_date]["Remaining Stock"].values[0]
+    ay_first = -55 
+    fig.add_annotation(x=first_safety_drop_date.strftime('%Y-%m-%d'), y=y_val_first, text=f"⚠️ {first_safety_drop_date.strftime('%m/%d')} 首次跌穿", showarrow=True, arrowhead=1, arrowcolor="#e67700", ax=0, ay=ay_first, bgcolor="#fff4e6", font=dict(color="#e67700"))
+    placed_labels.append({'date': first_safety_drop_date, 'y': y_val_first, 'ay': ay_first}) 
+    
+    if final_safety_drop_date and final_safety_drop_date != first_safety_drop_date:
+        y_val_final = df_plot[df_plot["Date"] == final_safety_drop_date]["Remaining Stock"].values[0]
+        ay_final = -85 
+        fig.add_annotation(x=final_safety_drop_date.strftime('%Y-%m-%d'), y=y_val_final, text=f"⚠️ {final_safety_drop_date.strftime('%m/%d')} 末次跌穿", showarrow=True, arrowhead=1, arrowcolor="#e67700", ax=0, ay=ay_final, bgcolor="#fff4e6", font=dict(color="#e67700"))
+        placed_labels.append({'date': final_safety_drop_date, 'y': y_val_final, 'ay': ay_final}) 
+
+    if suggested_buy_date:
+        fig.add_annotation(
+            x=suggested_buy_date.strftime('%Y-%m-%d'), 
+            y=0.92,            
+            yref="paper",      
+            text=f"🛒 {suggested_buy_date.strftime('%m/%d')} 建议建单", 
+            showarrow=False,   
+            bgcolor="#e7f5ff", 
+            font=dict(color="#1f77b4", size=11),
+            bordercolor="#1f77b4",
+            borderwidth=1,
+            borderpad=4
+        )
+        fig.add_vline(x=suggested_buy_date.strftime('%Y-%m-%d'), line_dash="dot", line_color="rgba(31, 119, 180, 0.5)")
+
+if hit_zero_date:
+    fig.add_annotation(x=hit_zero_date.strftime('%Y-%m-%d'), y=0, text=f"🚨 {hit_zero_date.strftime('%m/%d')} 彻底断货!", showarrow=True, arrowhead=1, arrowcolor="red", ax=0, ay=-110, bgcolor="#ffe3e3", font=dict(color="red"))
+    placed_labels.append({'date': hit_zero_date, 'y': 0, 'ay': -110}) 
+
+# --- 核心置顶手术区：先让上架绿色气泡在底层渲染 ---
+arrival_dict = {}
+total_qty_dict = {}
+
+for b in final_all_batches:
+    if b.get("hide_label"): continue 
+    arr_date = start_date + datetime.timedelta(days=b["day"])
+    if arr_date not in arrival_dict: 
+        arrival_dict[arr_date] = []
+        total_qty_dict[arr_date] = 0
+    arrival_dict[arr_date].append(f"{b['name']}({b['qty']}件)")
+    total_qty_dict[arr_date] += b['qty']
+
+# 🌟🌟🌟 【核心优化】全量模糊防撞探测引擎 (绝对物理视界版 + 顶部防空域) 🌟🌟🌟
+base_ay = 50 
 step_ay = st.session_state.get(y_offset_key, 65)
 
-# 1. 动态计算 Y 轴垂直安全阈值：取图表最高库存的 12% 作为“高度相近”的判定标准（保底 100 件）
-max_stock_val = df_plot["Remaining Stock"].max() if not df_plot.empty else 1000
-y_collide_threshold = max(100, max_stock_val * 0.12)
-
-# 2. 建立智能避让候选池：优先常规下方 -> 其次反弹到上方 -> 再其次长箭头的阶梯下方 -> 阶梯上方...
+# 1. 建立智能避让候选池
 candidate_ays = [
     base_ay, 
-    -base_ay - 15,                  # 负数代表反向生长（文字框悬浮在折线上方，箭头向下指）
+    -base_ay - 15,                  
     base_ay + step_ay, 
     -(base_ay + step_ay + 15),
     base_ay + step_ay * 2, 
     -(base_ay + step_ay * 2 + 15),
     base_ay + step_ay * 3,
-    -(base_ay + step_ay * 3 + 15)
+    -(base_ay + step_ay * 3 + 15),
+    base_ay + step_ay * 4,
+    -(base_ay + step_ay * 4 + 15),
+    base_ay + step_ay * 5,
+    -(base_ay + step_ay * 5 + 15)
 ]
+
+# 2. 核心科技：计算真实的图表像素比例
+max_stock_val = df_plot["Remaining Stock"].max() if not df_plot.empty else 1000
+px_to_stock = max(1.0, max_stock_val / 500.0) # 假设图表有效高度约 500 像素
+
+# 🚀 【核心修复】：设立“顶部防空识别区”。
+# 留给置顶橙色促销标签的绝对禁区！如果图表物理高度超过 85%，一律不准往上生长！
+ceiling_visual_y = max_stock_val * 0.85 
 
 for d_date in sorted(arrival_dict.keys()):
     date_str = d_date.strftime('%Y-%m-%d')
@@ -1406,26 +1461,34 @@ for d_date in sorted(arrival_dict.keys()):
         y_val = df_plot[df_plot["Date"] == d_date]["Remaining Stock"].values[0]
         
         # --- 3. 智能雷达扫描决策 ---
-        chosen_ay = candidate_ays[0] # 默认使用最完美的标准下箭头
+        chosen_ay = candidate_ays[0] 
         for cand_ay in candidate_ays:
             collision = False
+            
+            # 将要画的文字框的物理高度提前算出来
+            cand_visual_y = y_val - (cand_ay * px_to_stock)
+            
+            # 🛡️ 【防撞逻辑 A：天花板绝对排斥】
+            # 如果这个绿气泡企图往上长 (cand_ay < 0)，且它的高度冲进了顶部 15% 的禁区
+            # 直接无情拦截，抛弃此方案，逼迫它使用向下的箭头！
+            if cand_ay < 0 and cand_visual_y > ceiling_visual_y:
+                continue
+            
+            # 🛡️ 【防撞逻辑 B：标签间的微观物理排斥】
             for p in placed_labels:
                 day_diff = abs((d_date - p['date']).days)
                 
-                # 判断条件A：如果两个气泡在 X 轴相距 12 天以内（水平极度拥挤）
-                if day_diff <= 12:
-                    # 判断条件B：且在 Y 轴的库存高度差距极小（垂直也拥挤，即将发生物理碰撞）
-                    if abs(y_val - p['y']) < y_collide_threshold:
-                        # 既然真要撞了，就绝对不允许它们共用同一个伸展方向和长度
-                        if cand_ay == p['ay']:
-                            collision = True
-                            break
-            # 如果这根候选箭头完美避开了所有障碍，就选定它！
+                if day_diff <= 14: # 水平空间拥挤区
+                    p_visual_y = p['y'] - (p['ay'] * px_to_stock)
+                    # 只要两个文字框的垂直物理中心点相距不到 55 像素，必定重叠，立刻弹开！
+                    if abs(cand_visual_y - p_visual_y) < (55 * px_to_stock):
+                        collision = True
+                        break
+                        
             if not collision:
                 chosen_ay = cand_ay
                 break
         
-        # 将本次成功定型的气泡坐标入库，作为后方小弟的避让参考
         placed_labels.append({'date': d_date, 'y': y_val, 'ay': chosen_ay})
         
         # --- 4. 气泡最终渲染 ---
@@ -1443,7 +1506,7 @@ for d_date in sorted(arrival_dict.keys()):
                                ax=0, ay=chosen_ay, bgcolor="#ebfbee", bordercolor="#2b8a3e", font=dict(color="#2b8a3e", size=11))
             
         fig.add_vline(x=date_str, line_dash="dot", line_color="rgba(43, 138, 62, 0.3)")
-    except IndexError: pass 
+    except IndexError: pass
 
 # 🌟🌟🌟 【后续原代码衔接区】将大促阶段标签移到全篇最后一步渲染，强制拉满物理 Z-Index 图层置顶 🌟🌟🌟
 colors = ["#f8f9fa", "#e9ecef", "#dee2e6", "#ced4da"]
