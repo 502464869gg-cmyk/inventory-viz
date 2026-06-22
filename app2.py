@@ -1330,14 +1330,21 @@ fig.add_trace(go.Scatter(x=df_plot["Date"], y=df_plot["Safety Stock"], mode='lin
 fig.add_trace(go.Scatter(x=df_plot["Date"], y=df_plot["Remaining Stock"], mode='lines', name='FBA可用库存', line=dict(color='#1f77b4', width=3, shape='spline'), customdata=df_plot["Daily Sales"], hovertemplate="<b>日期: %{x}</b><br>可用库存: %{y} 件<br>当前阶段预估日销: <b>%{customdata} 单</b><extra></extra>"))
 fig.add_hline(y=0, line_dash="dash", line_color="red")
 
+# 🌟🌟🌟 【全新升级】全图级智能防撞雷达系统预载 🌟🌟🌟
+placed_labels = [] # 提前建立雷达内存：不仅记录绿色气泡，还要把各种预警提示牌全部记录进去
+
 if first_safety_drop_date:
     y_val_first = df_plot[df_plot["Date"] == first_safety_drop_date]["Remaining Stock"].values[0]
-    fig.add_annotation(x=first_safety_drop_date.strftime('%Y-%m-%d'), y=y_val_first, text=f"⚠️ {first_safety_drop_date.strftime('%m/%d')} 首次跌穿", showarrow=True, arrowhead=1, arrowcolor="#e67700", ax=0, ay=-40, bgcolor="#fff4e6", font=dict(color="#e67700"))
+    ay_first = -55 # 【优化】稍微拉长橘色预警的箭头，告别短粗桩
+    fig.add_annotation(x=first_safety_drop_date.strftime('%Y-%m-%d'), y=y_val_first, text=f"⚠️ {first_safety_drop_date.strftime('%m/%d')} 首次跌穿", showarrow=True, arrowhead=1, arrowcolor="#e67700", ax=0, ay=ay_first, bgcolor="#fff4e6", font=dict(color="#e67700"))
+    placed_labels.append({'date': first_safety_drop_date, 'y': y_val_first, 'ay': ay_first}) # 📌 录入雷达
     
     if final_safety_drop_date and final_safety_drop_date != first_safety_drop_date:
         y_val_final = df_plot[df_plot["Date"] == final_safety_drop_date]["Remaining Stock"].values[0]
-        fig.add_annotation(x=final_safety_drop_date.strftime('%Y-%m-%d'), y=y_val_final, text=f"⚠️ {final_safety_drop_date.strftime('%m/%d')} 末次跌穿", showarrow=True, arrowhead=1, arrowcolor="#e67700", ax=0, ay=-65, bgcolor="#fff4e6", font=dict(color="#e67700"))
-    
+        ay_final = -85 # 【优化】拉开双预警的梯度
+        fig.add_annotation(x=final_safety_drop_date.strftime('%Y-%m-%d'), y=y_val_final, text=f"⚠️ {final_safety_drop_date.strftime('%m/%d')} 末次跌穿", showarrow=True, arrowhead=1, arrowcolor="#e67700", ax=0, ay=ay_final, bgcolor="#fff4e6", font=dict(color="#e67700"))
+        placed_labels.append({'date': final_safety_drop_date, 'y': y_val_final, 'ay': ay_final}) # 📌 录入雷达
+
     if suggested_buy_date:
         fig.add_annotation(
             x=suggested_buy_date.strftime('%Y-%m-%d'), 
@@ -1354,7 +1361,8 @@ if first_safety_drop_date:
         fig.add_vline(x=suggested_buy_date.strftime('%Y-%m-%d'), line_dash="dot", line_color="rgba(31, 119, 180, 0.5)")
 
 if hit_zero_date:
-    fig.add_annotation(x=hit_zero_date.strftime('%Y-%m-%d'), y=0, text=f"🚨 {hit_zero_date.strftime('%m/%d')} 彻底断货!", showarrow=True, arrowhead=1, arrowcolor="red", ax=0, ay=-100, bgcolor="#ffe3e3", font=dict(color="red"))
+    fig.add_annotation(x=hit_zero_date.strftime('%Y-%m-%d'), y=0, text=f"🚨 {hit_zero_date.strftime('%m/%d')} 彻底断货!", showarrow=True, arrowhead=1, arrowcolor="red", ax=0, ay=-110, bgcolor="#ffe3e3", font=dict(color="red"))
+    placed_labels.append({'date': hit_zero_date, 'y': 0, 'ay': -110}) # 📌 红色断货牌录入雷达
 
 # --- 核心置顶手术区：先让上架绿色气泡在底层渲染 ---
 arrival_dict = {}
@@ -1369,8 +1377,8 @@ for b in final_all_batches:
     arrival_dict[arr_date].append(f"{b['name']}({b['qty']}件)")
     total_qty_dict[arr_date] += b['qty']
 
-# 🌟🌟🌟 【核心优化】引入智能双向防撞雷达引擎 🌟🌟🌟
-base_ay = 50
+# 🌟🌟🌟 【核心优化】全量模糊防撞探测引擎 🌟🌟🌟
+base_ay = 50 # 【修复】：整体加长基础绿色箭头起步尺寸（从 45 提升至 50）
 step_ay = st.session_state.get(y_offset_key, 65)
 
 # 1. 动态计算 Y 轴垂直安全阈值：取图表最高库存的 12% 作为“高度相近”的判定标准（保底 100 件）
@@ -1388,8 +1396,6 @@ candidate_ays = [
     base_ay + step_ay * 3,
     -(base_ay + step_ay * 3 + 15)
 ]
-
-placed_labels = [] # 用于在内存中记录已经画好的气泡坐标
 
 for d_date in sorted(arrival_dict.keys()):
     date_str = d_date.strftime('%Y-%m-%d')
