@@ -361,6 +361,22 @@ if col_s2.button("🔄 同步销量", use_container_width=True):
     for i in range(st.session_state[phase_count_key]): st.session_state[f"p_sales_{i}_{asin_name}"] = global_sales
     st.sidebar.success("已同步")
 
+# 【新增：促销日历专属——独立阶段删除、全要素向上挤压对齐的回调函数】
+def cb_delete_phase_slot(idx_to_del, a_name):
+    current_count = st.session_state.get(f"phase_count_{a_name}", 1)
+    if current_count > 1:
+        # 数据传送带：将下层阶段的所有名称、截止日期、日销状态向上原样复制一格
+        for i in range(idx_to_del, current_count - 1):
+            st.session_state[f"p_name_{i}_{a_name}"] = st.session_state.get(f"p_name_{i+1}_{a_name}", f"阶段{i+2}")
+            st.session_state[f"p_end_{i}_{a_name}"] = st.session_state.get(f"p_end_{i+1}_{a_name}", datetime.date.today())
+            st.session_state[f"p_sales_{i}_{a_name}"] = st.session_state.get(f"p_sales_{i+1}_{a_name}", 10)
+        
+        # 彻底擦除最后一格残留的状态缓存，防止数据重叠
+        last_idx = current_count - 1
+        for k in [f"p_name_{last_idx}_{a_name}", f"p_end_{last_idx}_{a_name}", f"p_sales_{last_idx}_{a_name}"]:
+            if k in st.session_state: del st.session_state[k]
+        st.session_state[f"phase_count_{a_name}"] -= 1
+
 phases = []
 current_phase_start = start_date
 
@@ -375,31 +391,30 @@ for i in range(st.session_state[phase_count_key]):
         default_end_date = current_phase_start + datetime.timedelta(days=fallback_days - 1)
         
     with st.sidebar.expander(f"⚙️ 第 {i+1} 阶段设置", expanded=(i<2)):
-        p_name = st.text_input(f"阶段 {i+1} 名称", value=saved_p.get("name", f"阶段{i+1}"), key=f"p_name_{i}_{asin_name}")
+        # 🌟 头部集成垃圾桶独立删除按钮与名称输入框
+        del_col1, del_col2 = st.columns([8, 2])
+        with del_col2:
+            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+            # 核心防呆：当仅剩 1 个基本阶段时自动禁用垃圾桶，确保大盘计算链条不会因零阶段而崩溃
+            st.button("🗑️", key=f"del_ph_btn_{i}_{asin_name}", help="删除此促销阶段并向上对齐", on_click=cb_delete_phase_slot, args=(i, asin_name), disabled=(st.session_state[phase_count_key] == 1))
+        with del_col1:
+            p_name = st.text_input(f"阶段 {i+1} 名称", value=saved_p.get("name", f"阶段{i+1}"), key=f"p_name_{i}_{asin_name}")
+            
         p_end = st.date_input(f"[{p_name}] 结束日期 (固定锚点)", value=default_end_date, key=f"p_end_{i}_{asin_name}")
         p_days = (p_end - current_phase_start).days + 1
         p_sales_key = f"p_sales_{i}_{asin_name}"
-        # 初始化状态，并将原配置中的历史销量同步，最大值智能硬性截断在 200 以内防止溢出
+        
         if p_sales_key not in st.session_state: 
             st.session_state[p_sales_key] = min(200, int(saved_p.get("sales", global_sales)))
         
-        # 渲染独立的文本标签，避免塞进列布局中导致挤压变形
         st.markdown(f"📊 **[{p_name}] 日均销预估**")
         
-        # 【核心修复】定义回调函数，避开 Streamlit 生命周期渲染冲突
         def cb_sub(k): st.session_state[k] = max(0, st.session_state.get(k, 0) - 1)
         def cb_add(k): st.session_state[k] = min(200, st.session_state.get(k, 0) + 1)
         
-        # 建立 1.5 : 7 : 1.5 的紧凑水平对齐阵列
         slide_col1, slide_col2, slide_col3 = st.columns([1.5, 7, 1.5])
-        
-        # 🌟 左侧：微调减号按钮 (通过 on_click 让结算发生在画面渲染前)
         slide_col1.button("➖", key=f"btn_sub_{i}_{asin_name}", use_container_width=True, on_click=cb_sub, args=(p_sales_key,))
-            
-        # 🌟 中间：无缝接收状态值的滑动条（最大值锁死在 200，并隐藏自带标签保持视效纯净）
-        p_sales = slide_col2.slider("销量调节", min_value=0, max_value=80, key=p_sales_key, label_visibility="collapsed")
-        
-        # 🌟 右侧：微调加号按钮 (通过 on_click 让结算发生在画面渲染前)
+        p_sales = slide_col2.slider("销量调节", min_value=0, max_value=200, key=p_sales_key, label_visibility="collapsed")
         slide_col3.button("➕", key=f"btn_add_{i}_{asin_name}", use_container_width=True, on_click=cb_add, args=(p_sales_key,))
         
         if p_days > 0:
@@ -412,10 +427,10 @@ daily_sales_array = []
 for p in phases: daily_sales_array.extend([p["sales"]] * p["days"])
 daily_sales_array.extend([global_sales] * 400) 
 
-c1_ph, c2_ph = st.sidebar.columns(2)
-if c1_ph.button("➕ 新增阶段", use_container_width=True, key=f"add_ph_{asin_name}"): st.session_state[phase_count_key] += 1; st.rerun()
-if c2_ph.button("➖ 删除阶段", use_container_width=True, key=f"del_ph_{asin_name}"):
-    if st.session_state[phase_count_key] > 1: st.session_state[phase_count_key] -= 1; st.rerun()
+# 整合为整行美化的槽位新增按钮，彻底移除原本底部的全局“减号”删除按钮
+if st.sidebar.button("➕ 新增一个大促促销阶段", use_container_width=True, key=f"add_ph_{asin_name}"): 
+    st.session_state[phase_count_key] += 1
+    st.rerun()
 
 # ================= 4. 供给侧前置录入 =================
 baseline_batches = [] 
@@ -1346,10 +1361,27 @@ for b in final_all_batches:
     arrival_dict[arr_date].append(f"{b['name']}({b['qty']}件)")
     total_qty_dict[arr_date] += b['qty']
 
-base_ay = 55
-step_ay = st.session_state[y_offset_key]
-height_cycle = [base_ay, base_ay + step_ay, base_ay + step_ay*2, base_ay + step_ay*3, base_ay + step_ay*4]
-h_idx = 0
+# 🌟🌟🌟 【核心优化】引入智能双向防撞雷达引擎 🌟🌟🌟
+base_ay = 45
+step_ay = st.session_state.get(y_offset_key, 65)
+
+# 1. 动态计算 Y 轴垂直安全阈值：取图表最高库存的 12% 作为“高度相近”的判定标准（保底 100 件）
+max_stock_val = df_plot["Remaining Stock"].max() if not df_plot.empty else 1000
+y_collide_threshold = max(100, max_stock_val * 0.12)
+
+# 2. 建立智能避让候选池：优先常规下方 -> 其次反弹到上方 -> 再其次长箭头的阶梯下方 -> 阶梯上方...
+candidate_ays = [
+    base_ay, 
+    -base_ay - 15,                  # 负数代表反向生长（文字框悬浮在折线上方，箭头向下指）
+    base_ay + step_ay, 
+    -(base_ay + step_ay + 15),
+    base_ay + step_ay * 2, 
+    -(base_ay + step_ay * 2 + 15),
+    base_ay + step_ay * 3,
+    -(base_ay + step_ay * 3 + 15)
+]
+
+placed_labels = [] # 用于在内存中记录已经画好的气泡坐标
 
 for d_date in sorted(arrival_dict.keys()):
     date_str = d_date.strftime('%Y-%m-%d')
@@ -1358,22 +1390,48 @@ for d_date in sorted(arrival_dict.keys()):
     
     try:
         y_val = df_plot[df_plot["Date"] == d_date]["Remaining Stock"].values[0]
-        current_ay = height_cycle[h_idx % len(height_cycle)]
-        h_idx += 1
         
+        # --- 3. 智能雷达扫描决策 ---
+        chosen_ay = candidate_ays[0] # 默认使用最完美的标准下箭头
+        for cand_ay in candidate_ays:
+            collision = False
+            for p in placed_labels:
+                day_diff = abs((d_date - p['date']).days)
+                
+                # 判断条件A：如果两个气泡在 X 轴相距 12 天以内（水平极度拥挤）
+                if day_diff <= 12:
+                    # 判断条件B：且在 Y 轴的库存高度差距极小（垂直也拥挤，即将发生物理碰撞）
+                    if abs(y_val - p['y']) < y_collide_threshold:
+                        # 既然真要撞了，就绝对不允许它们共用同一个伸展方向和长度
+                        if cand_ay == p['ay']:
+                            collision = True
+                            break
+            # 如果这根候选箭头完美避开了所有障碍，就选定它！
+            if not collision:
+                chosen_ay = cand_ay
+                break
+        
+        # 将本次成功定型的气泡坐标入库，作为后方小弟的避让参考
+        placed_labels.append({'date': d_date, 'y': y_val, 'ay': chosen_ay})
+        
+        # --- 4. 气泡最终渲染 ---
         if is_minimal_view:
             hover_text = "<br>".join(items)
             display_text = f"🟢 {d_date.strftime('%m/%d')} 上架<br><b>+{total_qty}件</b>"
-            fig.add_annotation(x=date_str, y=y_val, text=display_text, hovertext=hover_text, showarrow=True, arrowhead=1, arrowcolor="#2b8a3e", arrowsize=1.5, ax=0, ay=current_ay, bgcolor="#ebfbee", bordercolor="#2b8a3e", font=dict(color="#2b8a3e", size=11))
+            fig.add_annotation(x=date_str, y=y_val, text=display_text, hovertext=hover_text, 
+                               showarrow=True, arrowhead=1, arrowcolor="#2b8a3e", arrowsize=1.5, 
+                               ax=0, ay=chosen_ay, bgcolor="#ebfbee", bordercolor="#2b8a3e", font=dict(color="#2b8a3e", size=11))
         else:
             detail_text = "<br>+ ".join(items)
             display_text = f"🟢 {d_date.strftime('%m/%d')} 上架<br>+ {detail_text}"
-            fig.add_annotation(x=date_str, y=y_val, text=display_text, showarrow=True, arrowhead=1, arrowcolor="#2b8a3e", arrowsize=1.5, ax=0, ay=current_ay, bgcolor="#ebfbee", bordercolor="#2b8a3e", font=dict(color="#2b8a3e", size=11))
+            fig.add_annotation(x=date_str, y=y_val, text=display_text, 
+                               showarrow=True, arrowhead=1, arrowcolor="#2b8a3e", arrowsize=1.5, 
+                               ax=0, ay=chosen_ay, bgcolor="#ebfbee", bordercolor="#2b8a3e", font=dict(color="#2b8a3e", size=11))
             
         fig.add_vline(x=date_str, line_dash="dot", line_color="rgba(43, 138, 62, 0.3)")
     except IndexError: pass 
 
-# 🌟🌟🌟 【核心改动】将大促阶段标签移到全篇最后一步渲染，强制拉满物理 Z-Index 图层置顶 🌟🌟🌟
+# 🌟🌟🌟 【后续原代码衔接区】将大促阶段标签移到全篇最后一步渲染，强制拉满物理 Z-Index 图层置顶 🌟🌟🌟
 colors = ["#f8f9fa", "#e9ecef", "#dee2e6", "#ced4da"]
 for i, p in enumerate(phases):
     t_start = p["start"].strftime('%Y-%m-%d')
