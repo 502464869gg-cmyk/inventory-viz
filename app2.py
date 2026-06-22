@@ -1424,33 +1424,26 @@ for b in final_all_batches:
     arrival_dict[arr_date].append(f"{b['name']}({b['qty']}件)")
     total_qty_dict[arr_date] += b['qty']
 
-# 🌟🌟🌟 【核心优化】全量模糊防撞探测引擎 (绝对物理视界版 + 顶部防空域) 🌟🌟🌟
-base_ay = 50 
+# 🌟🌟🌟 【核心优化】全量模糊防撞探测引擎 (绝对物理视界版 + 负轴修正 + 顶部防空域) 🌟🌟🌟
+base_ay = 55
 step_ay = st.session_state.get(y_offset_key, 65)
 
-# 1. 建立智能避让候选池
-candidate_ays = [
-    base_ay, 
-    -base_ay - 15,                  
-    base_ay + step_ay, 
-    -(base_ay + step_ay + 15),
-    base_ay + step_ay * 2, 
-    -(base_ay + step_ay * 2 + 15),
-    base_ay + step_ay * 3,
-    -(base_ay + step_ay * 3 + 15),
-    base_ay + step_ay * 4,
-    -(base_ay + step_ay * 4 + 15),
-    base_ay + step_ay * 5,
-    -(base_ay + step_ay * 5 + 15)
-]
+# 1. 建立智能避让候选池 (大幅扩充候选深度，防止极端拥挤时无路可走)
+candidate_ays = []
+for i in range(10):  # 扩充到 20 个候选高度，上天入地随便找空隙
+    candidate_ays.append(base_ay + step_ay * i)
+    candidate_ays.append(-(base_ay + step_ay * i + 15))
 
-# 2. 核心科技：计算真实的图表像素比例
+# 2. 核心科技：计算真实的图表像素比例 (修复断货导致 Y轴为负时的比例失真问题)
 max_stock_val = df_plot["Remaining Stock"].max() if not df_plot.empty else 1000
-px_to_stock = max(1.0, max_stock_val / 500.0) # 假设图表有效高度约 500 像素
+min_stock_val = df_plot["Remaining Stock"].min() if not df_plot.empty else 0
+min_stock_val = min(0, min_stock_val) # 强制囊括负轴区域
 
-# 🚀 【核心修复】：设立“顶部防空识别区”。
-# 留给置顶橙色促销标签的绝对禁区！如果图表物理高度超过 85%，一律不准往上生长！
-ceiling_visual_y = max_stock_val * 0.85 
+true_y_range = max_stock_val - min_stock_val # 算出图表最顶到底部的真实跨度
+px_to_stock = max(1.0, true_y_range / 500.0) # 假设图表有效高度约 500 像素
+
+# 🚀 【顶部防空识别区】：留给置顶橙色促销标签的绝对禁区！
+ceiling_visual_y = max_stock_val - (true_y_range * 0.15) 
 
 for d_date in sorted(arrival_dict.keys()):
     date_str = d_date.strftime('%Y-%m-%d')
@@ -1468,9 +1461,7 @@ for d_date in sorted(arrival_dict.keys()):
             # 将要画的文字框的物理高度提前算出来
             cand_visual_y = y_val - (cand_ay * px_to_stock)
             
-            # 🛡️ 【防撞逻辑 A：天花板绝对排斥】
-            # 如果这个绿气泡企图往上长 (cand_ay < 0)，且它的高度冲进了顶部 15% 的禁区
-            # 直接无情拦截，抛弃此方案，逼迫它使用向下的箭头！
+            # 🛡️ 【防撞逻辑 A：天花板绝对排斥】保护高管顶部的销量汇报区
             if cand_ay < 0 and cand_visual_y > ceiling_visual_y:
                 continue
             
@@ -1478,10 +1469,12 @@ for d_date in sorted(arrival_dict.keys()):
             for p in placed_labels:
                 day_diff = abs((d_date - p['date']).days)
                 
-                if day_diff <= 14: # 水平空间拥挤区
+                # 哪怕它们横跨一个月 (15天以内)，雷达也要盯死它
+                if day_diff <= 15: 
                     p_visual_y = p['y'] - (p['ay'] * px_to_stock)
-                    # 只要两个文字框的垂直物理中心点相距不到 55 像素，必定重叠，立刻弹开！
-                    if abs(cand_visual_y - p_visual_y) < (55 * px_to_stock):
+                    
+                    # 只要两个文字框的垂直物理中心点相距不到 75 像素，必定重叠，立刻弹开！
+                    if abs(cand_visual_y - p_visual_y) < (75 * px_to_stock):
                         collision = True
                         break
                         
