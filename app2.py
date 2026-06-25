@@ -259,7 +259,7 @@ def handle_date_shift(a_name, config):
                 except: p_end = current_phase_start + datetime.timedelta(days=29)
             else:
                 p_end = current_phase_start + datetime.timedelta(days=p.get("days", 30)-1)
-            p_days = (p_end - current_phase_start).days + 1
+            p_days = (p_end - current_phase_start).days
             if p_days > 0:
                 daily_sales.extend([int(p.get("sales", global_s))] * p_days)
                 current_phase_start = p_end + datetime.timedelta(days=1)
@@ -400,7 +400,7 @@ for i in range(st.session_state[phase_count_key]):
             p_name = st.text_input(f"阶段 {i+1} 名称", value=saved_p.get("name", f"阶段{i+1}"), key=f"p_name_{i}_{asin_name}")
             
         p_end = st.date_input(f"[{p_name}] 结束日期 (固定锚点)", value=default_end_date, key=f"p_end_{i}_{asin_name}")
-        p_days = (p_end - current_phase_start).days + 1
+        p_days = (p_end - current_phase_start).days
         p_sales_key = f"p_sales_{i}_{asin_name}"
         
         if p_sales_key not in st.session_state: 
@@ -810,8 +810,8 @@ with st.expander("🤖 V8.1 AI 资金杠杆调控与核验中枢 (点击展开�
             arr = [b for b in current_batches if b["day"] == d]
             for b in arr: temp_stock += b["qty"]
             # Fix V8.1: Array index matching Date correctly
-            temp_stock -= daily_sales_array[d-1] if (d-1) < len(daily_sales_array) else global_sales
-            safe_level = sum(daily_sales_array[d-1 : d + 14])
+            temp_stock -= daily_sales_array[d] if d < len(daily_sales_array) else global_sales
+            safe_level = sum(daily_sales_array[d : d + 15])
             if temp_stock < safe_level and t_15 is None: t_15 = d
             if temp_stock < 0 and t_0 is None: t_0 = d
         return t_15 or 365, t_0 or 365
@@ -826,12 +826,12 @@ with st.expander("🤖 V8.1 AI 资金杠杆调控与核验中枢 (点击展开�
             for b in arr: temp_stock += b["qty"]
             
             # Fix V8.1: Sync array index with actual offset day
-            sales_today = daily_sales_array[d-1] if (d-1) < len(daily_sales_array) else global_sales
+            sales_today = daily_sales_array[d] if d < len(daily_sales_array) else global_sales
             temp_stock -= sales_today
 
             safe_level = 0
             for sd in range(d, d + 15):
-                safe_level += daily_sales_array[sd-1] if (sd-1) < len(daily_sales_array) else global_sales
+                safe_level += daily_sales_array[sd] if sd < len(daily_sales_array) else global_sales
 
             is_drop = temp_stock < safe_level
             is_zero = temp_stock < 0
@@ -1223,12 +1223,12 @@ for day in range(1, simulation_days + 1):
     arrived_today = [b for b in final_all_batches if b["day"] == day]
     for b in arrived_today: current_stock += b["qty"] 
     # Fix V8.1: Perfect offset alignment
-    sales_today = daily_sales_array[day-1] if (day-1) < len(daily_sales_array) else global_sales
+    sales_today = daily_sales_array[day] if day < len(daily_sales_array) else global_sales
     current_stock -= sales_today
     
     safety_stock = 0
     for sd in range(day, day + 15):
-        safety_stock += daily_sales_array[sd-1] if (sd-1) < len(daily_sales_array) else global_sales
+        safety_stock += daily_sales_array[sd] if sd < len(daily_sales_array) else global_sales
     
     inventory_list.append({"Day": day, "Date": current_date, "Remaining Stock": current_stock, "Safety Stock": safety_stock, "Daily Sales": sales_today})
     

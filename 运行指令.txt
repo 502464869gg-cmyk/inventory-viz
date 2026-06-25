@@ -17,5 +17,5 @@ python -m streamlit run app2.py
 
 更新云端：
 git add .
-git commit -m "26-6-25_更新"
+git commit -m "26-6-25_更新2"
 git push origin main
