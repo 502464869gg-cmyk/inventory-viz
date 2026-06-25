@@ -810,8 +810,8 @@ with st.expander("🤖 V8.1 AI 资金杠杆调控与核验中枢 (点击展开�
             arr = [b for b in current_batches if b["day"] == d]
             for b in arr: temp_stock += b["qty"]
             # Fix V8.1: Array index matching Date correctly
-            temp_stock -= daily_sales_array[d] if d < len(daily_sales_array) else global_sales
-            safe_level = sum(daily_sales_array[d : d + 15])
+            temp_stock -= daily_sales_array[d-1] if (d-1) < len(daily_sales_array) else global_sales
+            safe_level = sum(daily_sales_array[d-1 : d + 14])
             if temp_stock < safe_level and t_15 is None: t_15 = d
             if temp_stock < 0 and t_0 is None: t_0 = d
         return t_15 or 365, t_0 or 365
@@ -826,12 +826,12 @@ with st.expander("🤖 V8.1 AI 资金杠杆调控与核验中枢 (点击展开�
             for b in arr: temp_stock += b["qty"]
             
             # Fix V8.1: Sync array index with actual offset day
-            sales_today = daily_sales_array[d] if d < len(daily_sales_array) else global_sales
+            sales_today = daily_sales_array[d-1] if (d-1) < len(daily_sales_array) else global_sales
             temp_stock -= sales_today
 
             safe_level = 0
             for sd in range(d, d + 15):
-                safe_level += daily_sales_array[sd] if sd < len(daily_sales_array) else global_sales
+                safe_level += daily_sales_array[sd-1] if (sd-1) < len(daily_sales_array) else global_sales
 
             is_drop = temp_stock < safe_level
             is_zero = temp_stock < 0
@@ -966,6 +966,9 @@ with st.expander("🤖 V8.1 AI 资金杠杆调控与核验中枢 (点击展开�
         ai_prod_batches = [{"name": f"采购{b['id']+1}:{b['manual_ch'].split('-')[-1]}", "qty": b["qty"], "day": b["deliv_offset"] + LOGISTICS_CHANNELS[b["manual_ch"]] + fba_delay} for b in prod_batches_raw]
         for ab in ai_prod_batches: final_sim_batches.append(ab)
         ai_new_qty, user_new_total_qty, effective_fast_pct = 0, 0, fast_pct
+        ai_final_target_t15 = 365   # 健康路径：视为永不跌穿
+        final_t_0_cliff = 365       # 健康路径：视为永不断货
+        ai_new_boxes = 0            # 健康路径：无需补货
     else:
         test_batches = baseline_batches + [{"qty": b["qty"], "day": b["deliv_offset"] + 30} for b in prod_batches_sorted]
         ai_eval_t_15, _ = evaluate_core_t15(test_batches)
@@ -1220,13 +1223,12 @@ for day in range(1, simulation_days + 1):
     arrived_today = [b for b in final_all_batches if b["day"] == day]
     for b in arrived_today: current_stock += b["qty"] 
     # Fix V8.1: Perfect offset alignment
-    sales_today = daily_sales_array[day] if day < len(daily_sales_array) else global_sales
+    sales_today = daily_sales_array[day-1] if (day-1) < len(daily_sales_array) else global_sales
     current_stock -= sales_today
     
     safety_stock = 0
     for sd in range(day, day + 15):
-        # Fix V8.1: Perfect offset alignment
-        safety_stock += daily_sales_array[sd] if sd < len(daily_sales_array) else global_sales
+        safety_stock += daily_sales_array[sd-1] if (sd-1) < len(daily_sales_array) else global_sales
     
     inventory_list.append({"Day": day, "Date": current_date, "Remaining Stock": current_stock, "Safety Stock": safety_stock, "Daily Sales": sales_today})
     
@@ -1249,7 +1251,7 @@ for day in range(1, simulation_days + 1):
         current_drop_date = None
         
     was_healthy = not is_drop
-    was_zero = not is_zero
+    was_zero = is_zero       # ← 去掉 not
     
 if current_drop_date is not None:
     events.append({'drop_date': current_drop_date, 'hit_zero': hit_zero_in_current_drop})
@@ -1270,7 +1272,17 @@ if events:
 
 suggested_buy_date = None
 if target_date:
-    region_code_plot = "US" if "🇺🇸" in st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US")) else "CA"
+    _region_radio_val = st.session_state.get(f"ai_region_radio_{asin_name}", c_data.get("region", "US"))
+    if "🇺🇸" in _region_radio_val:
+        region_code_plot = "US"
+    elif "🇨🇦" in _region_radio_val:
+        region_code_plot = "CA"
+    elif "🇩🇪" in _region_radio_val:
+        region_code_plot = "DE"
+    elif "🇬🇧" in _region_radio_val:
+        region_code_plot = "UK"
+    else:
+        region_code_plot = "US"  # 兜底
     seas_plot = {k: v for k, v in LOGISTICS_CHANNELS.items() if k in CH_CLASSIFICATION[region_code_plot]["SEA"]}
     if not seas_plot: seas_plot = LOGISTICS_CHANNELS
     fastest_sea_time_plot = min(seas_plot.items(), key=lambda x: x[1])[1]
