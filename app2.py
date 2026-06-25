@@ -377,7 +377,7 @@ def cb_delete_phase_slot(idx_to_del, a_name):
         st.session_state[f"phase_count_{a_name}"] -= 1
 
 phases = []
-current_phase_start = start_date
+current_phase_start = start_date + datetime.timedelta(days=1)
 
 for i in range(st.session_state[phase_count_key]):
     saved_p = saved_phases[i] if i < len(saved_phases) else {}
