@@ -259,7 +259,7 @@ def handle_date_shift(a_name, config):
                 except: p_end = current_phase_start + datetime.timedelta(days=29)
             else:
                 p_end = current_phase_start + datetime.timedelta(days=p.get("days", 30)-1)
-            p_days = (p_end - current_phase_start).days
+            p_days = (p_end - current_phase_start).days + 1
             if p_days > 0:
                 daily_sales.extend([int(p.get("sales", global_s))] * p_days)
                 current_phase_start = p_end + datetime.timedelta(days=1)
@@ -400,7 +400,7 @@ for i in range(st.session_state[phase_count_key]):
             p_name = st.text_input(f"阶段 {i+1} 名称", value=saved_p.get("name", f"阶段{i+1}"), key=f"p_name_{i}_{asin_name}")
             
         p_end = st.date_input(f"[{p_name}] 结束日期 (固定锚点)", value=default_end_date, key=f"p_end_{i}_{asin_name}")
-        p_days = (p_end - current_phase_start).days
+        p_days = (p_end - current_phase_start).days + 1
         p_sales_key = f"p_sales_{i}_{asin_name}"
         
         if p_sales_key not in st.session_state: 
@@ -422,7 +422,7 @@ for i in range(st.session_state[phase_count_key]):
         else:
             st.warning(f"⚠️ 结束日 ({p_end.strftime('%m-%d')}) 在当前起始日之前，本阶段已被自动折叠跳过。")
 
-daily_sales_array = []
+daily_sales_array = [0]
 for p in phases: daily_sales_array.extend([p["sales"]] * p["days"])
 daily_sales_array.extend([global_sales] * 400) 
 
